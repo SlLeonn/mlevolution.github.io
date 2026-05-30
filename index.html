@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>ML Evolution</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <header class="site-header">
+      <a class="brand" href="#top" aria-label="ML Evolution home">
+        <span class="brand-mark" aria-hidden="true">ML</span>
+        <span>ML Evolution</span>
+      </a>
+
+      <nav class="site-nav" aria-label="Primary navigation">
+        <a href="#timeline">Timeline</a>
+        <a href="#workspace">Workspace</a>
+        <a href="#qml">QML</a>
+      </nav>
+    </header>
+
+    <main id="top">
+      <section class="hero" aria-labelledby="page-title">
+        <div class="hero-copy">
+          <p class="eyebrow">Interactive research skeleton</p>
+          <h1 id="page-title">Machine Learning Evolution</h1>
+          <p class="hero-note">Structure-only version for a future visual and mathematical walkthrough.</p>
+        </div>
+        <div class="hero-panel" aria-label="Project status">
+          <span>Static GitHub Pages app</span>
+          <strong>Skeleton v1</strong>
+        </div>
+      </section>
+
+      <section id="timeline" class="timeline-section" aria-labelledby="timeline-title">
+        <div class="section-heading">
+          <p class="eyebrow">Timeline</p>
+          <h2 id="timeline-title">Model Path</h2>
+        </div>
+
+        <div class="timeline" role="tablist" aria-label="Machine learning model timeline">
+          <button class="timeline-item is-active" type="button" role="tab" aria-selected="true" data-model="perceptron">
+            <span>01</span>
+            Perceptron
+          </button>
+          <button class="timeline-item" type="button" role="tab" aria-selected="false" data-model="mlp">
+            <span>02</span>
+            MLP
+          </button>
+          <button class="timeline-item" type="button" role="tab" aria-selected="false" data-model="cnn">
+            <span>03</span>
+            CNN
+          </button>
+          <button class="timeline-item" type="button" role="tab" aria-selected="false" data-model="rnn">
+            <span>04</span>
+            RNN
+          </button>
+          <button class="timeline-item" type="button" role="tab" aria-selected="false" data-model="lstm-gru">
+            <span>05</span>
+            LSTM / GRU
+          </button>
+          <button class="timeline-item" type="button" role="tab" aria-selected="false" data-model="seq2seq">
+            <span>06</span>
+            Seq2Seq
+          </button>
+          <button class="timeline-item" type="button" role="tab" aria-selected="false" data-model="attention">
+            <span>07</span>
+            Attention
+          </button>
+          <button class="timeline-item" type="button" role="tab" aria-selected="false" data-model="transformer">
+            <span>08</span>
+            Transformer
+          </button>
+          <button class="timeline-item" type="button" role="tab" aria-selected="false" data-model="qml-bridge">
+            <span>09</span>
+            Quantum ML Bridge
+          </button>
+        </div>
+      </section>
+
+      <section id="workspace" class="workspace" aria-labelledby="workspace-title">
+        <div class="workspace-header">
+          <div>
+            <p class="eyebrow">Workspace</p>
+            <h2 id="workspace-title" data-active-title>Perceptron</h2>
+          </div>
+          <div class="model-index" data-active-index>01 / 09</div>
+        </div>
+
+        <div class="workspace-grid">
+          <article class="viewer-panel architecture-panel">
+            <div class="panel-heading">
+              <h3>Architecture</h3>
+              <span data-active-model>Perceptron</span>
+            </div>
+            <div class="placeholder-canvas architecture-canvas" aria-label="Architecture placeholder">
+              <div class="node-row">
+                <span class="node"></span>
+                <span class="node"></span>
+                <span class="node node-accent"></span>
+              </div>
+              <p>Architecture placeholder</p>
+            </div>
+          </article>
+
+          <article class="viewer-panel math-panel">
+            <div class="panel-heading">
+              <h3>Math</h3>
+              <span>Core form</span>
+            </div>
+            <div class="placeholder-block">
+              <p>Math placeholder</p>
+            </div>
+          </article>
+
+          <article class="viewer-panel demo-panel">
+            <div class="panel-heading">
+              <h3>Decision Boundary</h3>
+              <span>Interactive demo</span>
+            </div>
+            <div class="placeholder-canvas demo-canvas" aria-label="Decision boundary demo placeholder">
+              <div class="demo-grid" aria-hidden="true"></div>
+              <p>Interactive demo placeholder</p>
+            </div>
+          </article>
+
+          <article class="viewer-panel controls-panel">
+            <div class="panel-heading">
+              <h3>Training Controls</h3>
+              <span>Future inputs</span>
+            </div>
+            <div class="control-shell">
+              <button type="button" disabled>Start</button>
+              <button type="button" disabled>Reset</button>
+              <label>
+                Dataset
+                <select disabled>
+                  <option>Placeholder</option>
+                </select>
+              </label>
+              <label>
+                Learning rate
+                <input type="range" min="0" max="10" value="4" disabled />
+              </label>
+            </div>
+          </article>
+
+          <article class="viewer-panel metrics-panel">
+            <div class="panel-heading">
+              <h3>Metrics</h3>
+              <span>Training chart</span>
+            </div>
+            <div class="metrics-placeholder" aria-label="Metrics chart placeholder">
+              <span></span>
+              <span></span>
+              <span></span>
+              <span></span>
+              <p>Metrics chart placeholder</p>
+            </div>
+          </article>
+        </div>
+      </section>
+
+      <section id="qml" class="qml-section" aria-labelledby="qml-title">
+        <div class="section-heading">
+          <p class="eyebrow">Quantum ML</p>
+          <h2 id="qml-title">Bridge</h2>
+        </div>
+
+        <div class="qml-grid">
+          <article class="project-card">
+            <div class="project-number">Project 1</div>
+            <h3>Data Reuploading</h3>
+            <div class="placeholder-block">
+              <p>QML project placeholder</p>
+            </div>
+          </article>
+
+          <article class="project-card">
+            <div class="project-number">Project 2</div>
+            <h3>QML Template</h3>
+            <div class="placeholder-block">
+              <p>QML project placeholder</p>
+            </div>
+          </article>
+        </div>
+      </section>
+    </main>
+
+    <footer class="site-footer">
+      <span>ML Evolution</span>
+      <span>GitHub Pages skeleton</span>
+    </footer>
+
+    <script src="src/app.js"></script>
+  </body>
+</html>
