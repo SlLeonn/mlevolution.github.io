@@ -448,6 +448,8 @@ h4 {
 
 .architecture-svg,
 .cnn-svg,
+.attention-svg,
+.transformer-svg,
 .boundary-svg,
 .sequence-svg,
 .gate-svg,
@@ -564,6 +566,73 @@ h4 {
   fill: var(--muted);
   font-size: 12px;
   font-weight: 700;
+}
+
+.attention-token rect,
+.attention-projection rect,
+.attention-score-box,
+.attention-context,
+.transformer-block rect {
+  fill: var(--surface);
+  stroke: var(--accent);
+  stroke-width: 2;
+  transition:
+    fill 160ms ease,
+    stroke 160ms ease;
+}
+
+.attention-token text,
+.attention-projection text,
+.attention-score-label,
+.attention-context-label,
+.transformer-block text,
+.transformer-stack-label {
+  fill: var(--ink);
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.attention-token rect {
+  stroke: rgba(36, 106, 115, 0.36);
+}
+
+.attention-projection.is-active rect,
+.attention-score-box.is-active,
+.attention-context.is-active,
+.transformer-block.is-active rect {
+  fill: rgba(36, 106, 115, 0.12);
+  stroke: var(--warm);
+}
+
+.attention-flow,
+.transformer-flow {
+  fill: none;
+  stroke: rgba(101, 112, 117, 0.38);
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 2.2;
+  transition:
+    stroke 160ms ease,
+    stroke-width 160ms ease;
+}
+
+.attention-flow.is-active,
+.transformer-flow.is-active {
+  stroke: var(--warm);
+  stroke-width: 3.2;
+}
+
+.attention-context {
+  fill: rgba(36, 106, 115, 0.08);
+}
+
+.transformer-block rect {
+  stroke: rgba(36, 106, 115, 0.46);
+}
+
+.transformer-stack-label {
+  fill: var(--muted);
+  font-size: 12px;
 }
 
 .diagram-controls,

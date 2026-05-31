@@ -1054,6 +1054,228 @@
     elements.architectureView.replaceChildren(shell);
   }
 
+  function renderAttentionArchitecture(panel) {
+    const diagram = panel.diagram;
+    const shell = createElement("div", "attention-architecture");
+    const svg = createSvgElement("svg", {
+      class: "attention-svg",
+      viewBox: "0 0 760 330",
+      role: "img",
+      "aria-label": panel.summary,
+    });
+    const controls = createElement("div", "diagram-controls");
+    const caption = createElement("p", "diagram-caption", panel.summary);
+
+    diagram.tokens.forEach((token, index) => {
+      const x = 92 + index * 92;
+      const group = createSvgElement("g", {
+        class: "attention-token",
+        transform: `translate(${x} 66)`,
+        "data-token": index,
+      });
+
+      group.append(
+        createSvgElement("rect", { x: -30, y: -22, width: 60, height: 44, rx: 8 }),
+        createSvgElement("text", { y: 5, "text-anchor": "middle" })
+      );
+      group.querySelector("text").textContent = token;
+      svg.append(group);
+    });
+
+    ["Q", "K", "V"].forEach((label, index) => {
+      const x = 162 + index * 140;
+      const group = createSvgElement("g", {
+        class: "attention-projection",
+        transform: `translate(${x} 150)`,
+        "data-stage": index,
+      });
+
+      group.append(
+        createSvgElement("rect", { x: -44, y: -24, width: 88, height: 48, rx: 8 }),
+        createSvgElement("text", { y: 6, "text-anchor": "middle" })
+      );
+      group.querySelector("text").textContent = label;
+      svg.append(group);
+    });
+
+    svg.append(
+      createSvgElement("path", {
+        class: "attention-flow",
+        d: "M 92 88 C 120 116, 136 124, 162 126",
+        "data-stage": 0,
+      }),
+      createSvgElement("path", {
+        class: "attention-flow",
+        d: "M 276 88 C 282 110, 296 124, 302 126",
+        "data-stage": 1,
+      }),
+      createSvgElement("path", {
+        class: "attention-flow",
+        d: "M 460 88 C 444 112, 428 124, 442 126",
+        "data-stage": 2,
+      }),
+      createSvgElement("rect", {
+        class: "attention-score-box",
+        x: 548,
+        y: 114,
+        width: 116,
+        height: 72,
+        rx: 10,
+        "data-stage": 3,
+      }),
+      createSvgElement("text", {
+        class: "attention-score-label",
+        x: 606,
+        y: 145,
+        "text-anchor": "middle",
+        "data-stage": 3,
+      }),
+      createSvgElement("text", {
+        class: "attention-score-label",
+        x: 606,
+        y: 166,
+        "text-anchor": "middle",
+        "data-stage": 3,
+      }),
+      createSvgElement("path", {
+        class: "attention-flow",
+        d: "M 346 150 C 420 104, 504 104, 548 136",
+        "data-stage": 3,
+      }),
+      createSvgElement("path", {
+        class: "attention-flow",
+        d: "M 486 150 C 520 168, 540 178, 548 168",
+        "data-stage": 4,
+      }),
+      createSvgElement("rect", {
+        class: "attention-context",
+        x: 308,
+        y: 236,
+        width: 144,
+        height: 54,
+        rx: 10,
+        "data-stage": 4,
+      }),
+      createSvgElement("path", {
+        class: "attention-flow",
+        d: "M 606 186 C 590 232, 500 252, 452 262",
+        "data-stage": 4,
+      })
+    );
+    svg.querySelectorAll(".attention-score-label")[0].textContent = "softmax";
+    svg.querySelectorAll(".attention-score-label")[1].textContent = "weights";
+
+    const contextLabel = createSvgElement("text", {
+      class: "attention-context-label",
+      x: 380,
+      y: 268,
+      "text-anchor": "middle",
+      "data-stage": 4,
+    });
+    contextLabel.textContent = diagram.output;
+    svg.append(contextLabel);
+
+    function activateStage(stageIndex) {
+      svg.querySelectorAll("[data-stage]").forEach((item) => {
+        item.classList.toggle("is-active", Number(item.dataset.stage) === stageIndex);
+      });
+      controls.querySelectorAll("button").forEach((button, buttonIndex) => {
+        button.classList.toggle("is-active", buttonIndex === stageIndex);
+      });
+      caption.textContent = diagram.stages[stageIndex].caption;
+    }
+
+    diagram.stages.forEach((stage, stageIndex) => {
+      const button = createElement("button", "diagram-button", stage.label);
+
+      button.type = "button";
+      button.addEventListener("click", () => activateStage(stageIndex));
+      controls.append(button);
+    });
+
+    shell.append(svg, controls, caption);
+    elements.architectureView.replaceChildren(shell);
+    activateStage(3);
+  }
+
+  function renderTransformerArchitecture(panel) {
+    const diagram = panel.diagram;
+    const shell = createElement("div", "transformer-architecture");
+    const svg = createSvgElement("svg", {
+      class: "transformer-svg",
+      viewBox: "0 0 760 360",
+      role: "img",
+      "aria-label": panel.summary,
+    });
+    const controls = createElement("div", "diagram-controls");
+    const caption = createElement("p", "diagram-caption", panel.summary);
+    const blocks = [
+      { label: "tokens + position", x: 70, y: 142, width: 120, height: 76 },
+      { label: "multi-head attention", x: 250, y: 80, width: 150, height: 72 },
+      { label: "add + norm", x: 446, y: 80, width: 112, height: 72 },
+      { label: "feed-forward", x: 250, y: 218, width: 150, height: 72 },
+      { label: "add + norm", x: 446, y: 218, width: 112, height: 72 },
+      { label: "next block / logits", x: 620, y: 142, width: 104, height: 76 },
+    ];
+
+    blocks.forEach((block, index) => {
+      const group = createSvgElement("g", {
+        class: "transformer-block",
+        transform: `translate(${block.x} ${block.y})`,
+        "data-stage": index,
+      });
+
+      group.append(
+        createSvgElement("rect", { width: block.width, height: block.height, rx: 10 }),
+        createSvgElement("text", { x: block.width / 2, y: block.height / 2 + 5, "text-anchor": "middle" })
+      );
+      group.querySelector("text").textContent = block.label;
+      svg.append(group);
+    });
+
+    [
+      "M 190 180 C 224 180, 222 116, 250 116",
+      "M 400 116 L 446 116",
+      "M 502 152 C 502 184, 404 206, 328 218",
+      "M 400 254 L 446 254",
+      "M 558 254 C 600 246, 600 196, 620 180",
+      "M 190 180 C 226 188, 574 188, 620 180",
+    ].forEach((path, index) => {
+      svg.append(createSvgElement("path", { class: "transformer-flow", d: path, "data-stage": index }));
+    });
+
+    const stackLabel = createSvgElement("text", {
+      class: "transformer-stack-label",
+      x: 380,
+      y: 330,
+      "text-anchor": "middle",
+    });
+    stackLabel.textContent = diagram.stack;
+    svg.append(stackLabel);
+
+    function activateStage(stageIndex) {
+      svg.querySelectorAll("[data-stage]").forEach((item) => {
+        item.classList.toggle("is-active", Number(item.dataset.stage) === stageIndex);
+      });
+      controls.querySelectorAll("button").forEach((button, buttonIndex) => {
+        button.classList.toggle("is-active", buttonIndex === stageIndex);
+      });
+      caption.textContent = diagram.stages[stageIndex].caption;
+    }
+
+    diagram.stages.forEach((stage, stageIndex) => {
+      const button = createElement("button", "diagram-button", stage.label);
+
+      button.type = "button";
+      button.addEventListener("click", () => activateStage(stageIndex));
+      controls.append(button);
+    });
+
+    shell.append(svg, controls, caption);
+    elements.architectureView.replaceChildren(shell);
+    activateStage(1);
+  }
+
   function createSeqNode(label, x, y, phase) {
     const group = createSvgElement("g", {
       class: "seq-node",
@@ -1134,6 +1356,16 @@
 
     if (panel.diagram.type === "qml-projects") {
       renderQmlProjectsArchitecture(panel);
+      return;
+    }
+
+    if (panel.diagram.type === "attention") {
+      renderAttentionArchitecture(panel);
+      return;
+    }
+
+    if (panel.diagram.type === "transformer") {
+      renderTransformerArchitecture(panel);
       return;
     }
 
