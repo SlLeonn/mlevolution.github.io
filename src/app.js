@@ -174,6 +174,119 @@
     activateLayer(0);
   }
 
+  function renderCnnArchitecture(panel) {
+    const diagram = panel.diagram;
+    const shell = createElement("div", "cnn-architecture");
+    const svg = createSvgElement("svg", {
+      class: "cnn-svg",
+      viewBox: "0 0 760 330",
+      role: "img",
+      "aria-label": panel.summary,
+    });
+    const controls = createElement("div", "diagram-controls");
+    const caption = createElement("p", "diagram-caption", panel.summary);
+    const phases = diagram.phases;
+
+    function appendFeatureMap(x, y, width, height, label, phase, layers = 3) {
+      for (let index = layers - 1; index >= 0; index -= 1) {
+        svg.append(
+          createSvgElement("rect", {
+            class: "cnn-map",
+            x: x + index * 8,
+            y: y - index * 8,
+            width,
+            height,
+            rx: 6,
+            "data-phase": phase,
+          })
+        );
+      }
+
+      const text = createSvgElement("text", {
+        class: "cnn-label",
+        x: x + width / 2 + 8,
+        y: y + height + 28,
+        "text-anchor": "middle",
+      });
+      text.textContent = label;
+      svg.append(text);
+    }
+
+    function appendArrow(x1, y1, x2, y2, phase) {
+      svg.append(
+        createSvgElement("path", {
+          class: "cnn-arrow",
+          d: `M ${x1} ${y1} C ${(x1 + x2) / 2} ${y1}, ${(x1 + x2) / 2} ${y2}, ${x2} ${y2}`,
+          "data-phase": phase,
+        })
+      );
+    }
+
+    svg.append(
+      createSvgElement("defs"),
+      createSvgElement("text", { class: "cnn-small-label", x: 164, y: 84, "text-anchor": "middle" }),
+      createSvgElement("text", { class: "cnn-small-label", x: 332, y: 84, "text-anchor": "middle" }),
+      createSvgElement("text", { class: "cnn-small-label", x: 502, y: 84, "text-anchor": "middle" })
+    );
+    svg.querySelectorAll(".cnn-small-label")[0].textContent = "local filter";
+    svg.querySelectorAll(".cnn-small-label")[1].textContent = "shared kernels";
+    svg.querySelectorAll(".cnn-small-label")[2].textContent = "downsample";
+
+    appendFeatureMap(48, 106, 96, 126, diagram.input, 0, 1);
+    svg.append(
+      createSvgElement("rect", { class: "cnn-window", x: 76, y: 136, width: 38, height: 38, rx: 4, "data-phase": 0 }),
+      createSvgElement("rect", { class: "cnn-kernel", x: 174, y: 134, width: 46, height: 46, rx: 5, "data-phase": 0 }),
+      createSvgElement("line", { class: "cnn-local-line", x1: 114, y1: 136, x2: 174, y2: 134, "data-phase": 0 }),
+      createSvgElement("line", { class: "cnn-local-line", x1: 114, y1: 174, x2: 174, y2: 180, "data-phase": 0 })
+    );
+
+    appendFeatureMap(272, 116, 82, 104, diagram.convolution, 1, 4);
+    appendFeatureMap(448, 130, 66, 76, diagram.pooling, 2, 4);
+
+    [584, 626, 668].forEach((x, index) => {
+      svg.append(
+        createSvgElement("circle", { class: "cnn-dense-node", cx: x, cy: 138 + index * 36, r: 14, "data-phase": 3 })
+      );
+    });
+    svg.append(createSvgElement("circle", { class: "cnn-output-node", cx: 714, cy: 174, r: 18, "data-phase": 3 }));
+
+    appendArrow(146, 166, 272, 168, 1);
+    appendArrow(364, 168, 448, 168, 2);
+    appendArrow(524, 168, 584, 174, 3);
+    appendArrow(682, 174, 696, 174, 3);
+
+    const outputLabel = createSvgElement("text", {
+      class: "cnn-label",
+      x: 648,
+      y: 260,
+      "text-anchor": "middle",
+    });
+    outputLabel.textContent = diagram.output;
+    svg.append(outputLabel);
+
+    function activatePhase(phaseIndex) {
+      svg.querySelectorAll("[data-phase]").forEach((item) => {
+        item.classList.toggle("is-active", Number(item.dataset.phase) === phaseIndex);
+      });
+      controls.querySelectorAll("button").forEach((button, buttonIndex) => {
+        button.classList.toggle("is-active", buttonIndex === phaseIndex);
+      });
+      caption.textContent = phases[phaseIndex].caption;
+    }
+
+    phases.forEach((phase, phaseIndex) => {
+      const button = createElement("button", "diagram-button", phase.label);
+
+      button.type = "button";
+      button.addEventListener("click", () => activatePhase(phaseIndex));
+      controls.append(button);
+    });
+
+    shell.append(svg, controls, caption);
+    elements.architectureView.replaceChildren(shell);
+    activatePhase(0);
+  }
+
   function renderSequenceArchitecture(panel) {
     const diagram = panel.diagram;
     const shell = createElement("div", "sequence-architecture");
@@ -423,6 +536,11 @@
       return;
     }
 
+    if (panel.diagram.type === "cnn") {
+      renderCnnArchitecture(panel);
+      return;
+    }
+
     if (panel.diagram.type === "sequence") {
       renderSequenceArchitecture(panel);
       return;
@@ -456,6 +574,35 @@
     const formula = createElement("div", "formula");
     const terms = createElement("div", "term-list");
     const note = createElement("p", "math-note", panel.note);
+
+    if (panel.steps && panel.steps.length) {
+      const intro = createElement("p", "math-intro", panel.intro || "");
+      const steps = createElement("div", "math-step-grid");
+
+      content.classList.add("math-content-detailed");
+      formula.classList.add("formula-hero");
+      panel.steps.forEach((step) => {
+        const card = createElement("article", "math-step");
+        const meta = createElement("span", "math-step-meta", step.meta);
+        const title = createElement("h4", "", step.title);
+        const equation = createElement("div", "step-equation");
+        const copy = createElement("p", "", step.copy);
+
+        equation.innerHTML = step.equationHtml || step.equation;
+        card.append(meta, title, equation, copy);
+        steps.append(card);
+      });
+
+      formula.innerHTML = panel.formulaHtml || panel.formula;
+      panel.terms.forEach((term) => {
+        terms.append(createElement("span", "term-chip", term));
+      });
+
+      content.append(formula, intro, steps, terms, note);
+      elements.mathView.classList.add("is-content-view");
+      elements.mathView.replaceChildren(content);
+      return;
+    }
 
     formula.innerHTML = panel.formulaHtml || panel.formula;
 

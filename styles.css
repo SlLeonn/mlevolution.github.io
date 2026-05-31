@@ -311,11 +311,21 @@ h4 {
 }
 
 .architecture-panel {
-  grid-row: span 2;
+  grid-column: 1 / -1;
+}
+
+.math-panel {
+  grid-column: 1 / -1;
 }
 
 .demo-panel {
   grid-column: 1 / 2;
+  grid-row: span 2;
+}
+
+.controls-panel,
+.metrics-panel {
+  grid-column: 2 / 3;
 }
 
 .controls-panel,
@@ -428,6 +438,7 @@ h4 {
 }
 
 .architecture-svg,
+.cnn-svg,
 .boundary-svg,
 .sequence-svg,
 .gate-svg,
@@ -471,6 +482,78 @@ h4 {
 
 .layer-label {
   fill: var(--muted);
+  font-weight: 700;
+}
+
+.cnn-map {
+  fill: rgba(255, 255, 255, 0.82);
+  stroke: rgba(36, 106, 115, 0.46);
+  stroke-width: 2;
+  transition:
+    fill 160ms ease,
+    stroke 160ms ease,
+    transform 160ms ease;
+}
+
+.cnn-map.is-active,
+.cnn-kernel.is-active,
+.cnn-window.is-active,
+.cnn-dense-node.is-active,
+.cnn-output-node.is-active {
+  fill: rgba(36, 106, 115, 0.14);
+  stroke: var(--warm);
+}
+
+.cnn-window {
+  fill: rgba(194, 125, 67, 0.16);
+  stroke: var(--warm);
+  stroke-dasharray: 4 4;
+  stroke-width: 2.4;
+}
+
+.cnn-kernel {
+  fill: rgba(36, 106, 115, 0.1);
+  stroke: var(--accent);
+  stroke-width: 2;
+}
+
+.cnn-local-line,
+.cnn-arrow {
+  fill: none;
+  stroke: rgba(101, 112, 117, 0.42);
+  stroke-linecap: round;
+  stroke-width: 2;
+  transition:
+    stroke 160ms ease,
+    stroke-width 160ms ease;
+}
+
+.cnn-arrow.is-active,
+.cnn-local-line.is-active {
+  stroke: var(--warm);
+  stroke-width: 3;
+}
+
+.cnn-dense-node,
+.cnn-output-node {
+  fill: var(--surface);
+  stroke: var(--accent);
+  stroke-width: 2;
+}
+
+.cnn-output-node {
+  stroke: var(--warm);
+}
+
+.cnn-label,
+.cnn-small-label {
+  fill: var(--ink);
+  font-size: 13px;
+}
+
+.cnn-small-label {
+  fill: var(--muted);
+  font-size: 12px;
   font-weight: 700;
 }
 
@@ -540,14 +623,85 @@ h4 {
   border-radius: var(--radius);
   background: var(--surface);
   color: var(--ink);
-  font-family: Georgia, "Times New Roman", serif;
+  font-family: "Latin Modern Math", "STIX Two Math", "Cambria Math", Georgia, "Times New Roman", serif;
   font-size: 1.12rem;
   line-height: 1.6;
   white-space: nowrap;
 }
 
+.math-content-detailed {
+  gap: 16px;
+}
+
+.formula-hero {
+  border-color: rgba(194, 125, 67, 0.34);
+  background:
+    linear-gradient(135deg, rgba(194, 125, 67, 0.09), rgba(36, 106, 115, 0.08)),
+    var(--surface);
+  color: var(--accent-strong);
+  font-size: 1rem;
+  font-weight: 700;
+}
+
+.math-intro {
+  margin: 0;
+  color: var(--ink);
+  font-size: 0.95rem;
+  line-height: 1.55;
+}
+
+.math-step-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.math-step {
+  display: grid;
+  gap: 8px;
+  min-width: 0;
+  padding: 12px;
+  border: 1px solid rgba(36, 106, 115, 0.16);
+  border-radius: var(--radius);
+  background: rgba(255, 255, 255, 0.68);
+}
+
+.math-step-meta {
+  color: var(--accent-strong);
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0;
+  text-transform: uppercase;
+}
+
+.math-step h4 {
+  margin-bottom: 0;
+  font-size: 0.9rem;
+}
+
+.step-equation {
+  overflow-x: auto;
+  padding: 9px 10px;
+  border-radius: var(--radius);
+  background: rgba(239, 238, 233, 0.72);
+  color: var(--ink);
+  font-family: "Latin Modern Math", "STIX Two Math", "Cambria Math", Georgia, "Times New Roman", serif;
+  font-size: 0.98rem;
+  line-height: 1.55;
+  white-space: nowrap;
+}
+
+.math-step p {
+  margin-bottom: 0;
+  color: var(--muted);
+  font-size: 0.84rem;
+  line-height: 1.45;
+}
+
 .formula sub,
-.formula sup {
+.formula sup,
+.step-equation sub,
+.step-equation sup {
   font-size: 0.68em;
   line-height: 0;
 }
@@ -944,7 +1098,10 @@ h4 {
   }
 
   .architecture-panel,
-  .demo-panel {
+  .math-panel,
+  .demo-panel,
+  .controls-panel,
+  .metrics-panel {
     grid-column: auto;
     grid-row: auto;
   }
@@ -995,6 +1152,10 @@ h4 {
     max-width: calc(100% - 24px);
     text-align: center;
     white-space: normal;
+  }
+
+  .math-step-grid {
+    grid-template-columns: 1fr;
   }
 
   .gate-list {
