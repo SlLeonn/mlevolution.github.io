@@ -8,6 +8,7 @@
     timeline: document.querySelector("[data-timeline]"),
     title: document.querySelector("[data-active-title]"),
     modelBrief: document.querySelector("[data-model-brief]"),
+    formulaStrip: document.querySelector("[data-formula-strip]"),
     model: document.querySelector("[data-active-model]"),
     index: document.querySelector("[data-active-index]"),
     architectureView: document.querySelector("[data-architecture-view]"),
@@ -19,6 +20,7 @@
     controlsShell: document.querySelector("[data-controls-shell]"),
     metricsLabel: document.querySelector("[data-metrics-label]"),
     metricsView: document.querySelector("[data-metrics-view]"),
+    insightView: document.querySelector("[data-insight-view]"),
     qmlProjects: document.querySelector("[data-qml-projects]"),
   };
 
@@ -96,6 +98,7 @@
         layerIndex,
         nodeIndex,
         label: nodeLabel,
+        isEllipsis: nodeLabel === "...",
         x,
         y: startY + yGap * nodeIndex,
       }));
@@ -104,6 +107,10 @@
     nodeMap.slice(0, -1).forEach((layer, layerIndex) => {
       layer.forEach((fromNode) => {
         nodeMap[layerIndex + 1].forEach((toNode) => {
+          if (fromNode.isEllipsis || toNode.isEllipsis) {
+            return;
+          }
+
           svg.append(
             createSvgElement("line", {
               class: "network-line",
@@ -122,16 +129,25 @@
     nodeMap.forEach((layer, layerIndex) => {
       layer.forEach((node) => {
         const group = createSvgElement("g", {
-          class: "network-node",
+          class: node.isEllipsis ? "network-ellipsis" : "network-node",
           transform: `translate(${node.x} ${node.y})`,
           "data-layer": layerIndex,
         });
 
-        group.append(
-          createSvgElement("circle", { r: 18 }),
-          createSvgElement("text", { y: 5, "text-anchor": "middle" })
-        );
-        group.querySelector("text").textContent = node.label;
+        if (node.isEllipsis) {
+          group.append(
+            createSvgElement("circle", { cy: -10, r: 2.8 }),
+            createSvgElement("circle", { cy: 0, r: 2.8 }),
+            createSvgElement("circle", { cy: 10, r: 2.8 })
+          );
+        } else {
+          group.append(
+            createSvgElement("circle", { r: 18 }),
+            createSvgElement("text", { y: 5, "text-anchor": "middle" })
+          );
+          group.querySelector("text").textContent = node.label;
+        }
+
         svg.append(group);
       });
 
@@ -158,7 +174,7 @@
       controls.querySelectorAll("button").forEach((button, buttonIndex) => {
         button.classList.toggle("is-active", buttonIndex === layerIndex);
       });
-      caption.textContent = `${layers[layerIndex].label}: ${layers[layerIndex].nodes.join(", ")}`;
+      caption.textContent = layers[layerIndex].description || `${layers[layerIndex].label}: ${layers[layerIndex].nodes.join(", ")}`;
     }
 
     layers.forEach((layer, layerIndex) => {
@@ -287,48 +303,256 @@
     activatePhase(0);
   }
 
+  function normalizeSequenceSteps(diagram) {
+    const source =
+      diagram.steps ||
+      (diagram.tokens || []).map((token, index, list) => {
+        const omitted = token === "...";
+        const isFinal = index === list.length - 1;
+
+        return {
+          button: token,
+          input: token,
+          hidden: omitted ? "" : isFinal ? "h_T" : `h_${index + 1}`,
+          output: omitted ? "" : isFinal ? "o_T" : `o_${index + 1}`,
+          omitted,
+        };
+      });
+
+    return source.map((step, index, list) => {
+      const omitted = Boolean(step.omitted);
+      const isFinal = index === list.length - 1;
+      const fallbackInput = isFinal ? "x_T" : `x_${index + 1}`;
+
+      return {
+        button: step.button || step.controlLabel || step.input || step.token || step.label || (omitted ? "..." : fallbackInput),
+        input: step.input || step.token || step.label || fallbackInput,
+        hidden: omitted ? "" : step.hidden || (isFinal ? "h_T" : `h_${index + 1}`),
+        output: omitted ? "" : step.output || (isFinal ? "o_T" : `o_${index + 1}`),
+        description: step.description,
+        omitted,
+      };
+    });
+  }
+
+  function normalizeSeq2SeqDiagram(diagram) {
+    const defaultPhases = [
+      {
+        label: "Encoder",
+        caption: "The encoder reads x_1 to x_T and updates h_t with the same recurrent cell at each step.",
+      },
+      {
+        label: "Context",
+        caption: "Context z carries the final source summary from encoder to decoder.",
+      },
+      {
+        label: "Decoder",
+        caption: "The decoder predicts y_1 to y_S step by step while conditioning on z.",
+      },
+    ];
+    const phases = defaultPhases.map((phase, index) => ({
+      ...phase,
+      ...(diagram.phases && diagram.phases[index] ? diagram.phases[index] : {}),
+    }));
+
+    return {
+      sourceSteps: normalizeSeq2SeqSourceSteps(diagram),
+      targetSteps: normalizeSeq2SeqTargetSteps(diagram),
+      bridge: diagram.bridge || "z",
+      phases,
+    };
+  }
+
+  function normalizeSeq2SeqSourceSteps(diagram) {
+    const rawSteps =
+      diagram.sourceSteps && diagram.sourceSteps.length
+        ? diagram.sourceSteps
+        : (diagram.source || ["x_1", "x_2", "...", "x_T"]).map((token) => ({ input: token }));
+
+    return rawSteps.map((rawStep, index, list) => {
+      const step = typeof rawStep === "string" ? { input: rawStep } : rawStep;
+      const omitted = Boolean(step.omitted) || step.input === "..." || step.label === "...";
+      const isFinal = index === list.length - 1;
+
+      return {
+        omitted,
+        label: step.label || (omitted ? "..." : step.input),
+        input: omitted ? "" : step.input || (isFinal ? "x_T" : `x_${index + 1}`),
+        state: omitted ? "" : step.state || (isFinal ? "h_T" : `h_${index + 1}`),
+      };
+    });
+  }
+
+  function normalizeSeq2SeqTargetSteps(diagram) {
+    const rawSteps =
+      diagram.targetSteps && diagram.targetSteps.length
+        ? diagram.targetSteps
+        : (diagram.target || ["y_1", "y_2", "...", "y_S"]).map((token) => ({ output: token }));
+
+    return rawSteps.map((rawStep, index, list) => {
+      const step = typeof rawStep === "string" ? { output: rawStep } : rawStep;
+      const omitted = Boolean(step.omitted) || step.output === "..." || step.label === "...";
+      const isFinal = index === list.length - 1;
+
+      return {
+        omitted,
+        label: step.label || (omitted ? "..." : step.output),
+        previous: omitted ? "" : step.previous || (index === 0 ? "<GO>" : isFinal ? "y_(S-1)" : `y_${index}`),
+        output: omitted ? "" : step.output || (isFinal ? "y_S" : `y_${index + 1}`),
+        state: omitted ? "" : step.state || (isFinal ? "s_S" : `s_${index + 1}`),
+      };
+    });
+  }
+
+  function normalizeGates(diagram) {
+    const defaults = [
+      {
+        label: "Keep",
+        short: "k_t",
+        description: "The keep gate decides how much old memory should pass forward.",
+      },
+      {
+        label: "Update",
+        short: "u_t",
+        description: "The update gate decides how much new candidate information should be written.",
+      },
+      {
+        label: "Output",
+        short: "o_t",
+        description: "The output gate decides what part of memory becomes visible as h_t.",
+      },
+    ];
+    const source = diagram.gates && diagram.gates.length ? diagram.gates : defaults;
+
+    return source.map((gate, index) => {
+      if (typeof gate === "string") {
+        return {
+          ...defaults[index],
+          label: gate.charAt(0).toUpperCase() + gate.slice(1),
+          short: defaults[index] ? defaults[index].short : gate,
+        };
+      }
+
+      return {
+        ...defaults[index],
+        ...gate,
+      };
+    });
+  }
+
   function renderSequenceArchitecture(panel) {
     const diagram = panel.diagram;
+    const steps = normalizeSequenceSteps(diagram);
     const shell = createElement("div", "sequence-architecture");
     const svg = createSvgElement("svg", {
       class: "sequence-svg",
-      viewBox: "0 0 640 260",
+      viewBox: "0 0 680 310",
       role: "img",
       "aria-label": panel.summary,
     });
     const controls = createElement("div", "diagram-controls");
     const caption = createElement("p", "diagram-caption", panel.summary);
-    const tokens = diagram.tokens;
-    const tokenGap = 500 / (tokens.length - 1);
+    const xStart = 92;
+    const xGap = steps.length > 1 ? 500 / (steps.length - 1) : 0;
+    const defs = createSvgElement("defs");
+    const marker = createSvgElement("marker", {
+      id: "arrow-rnn",
+      viewBox: "0 0 10 10",
+      refX: 8,
+      refY: 5,
+      markerWidth: 6,
+      markerHeight: 6,
+      orient: "auto-start-reverse",
+    });
 
-    svg.append(
-      createSvgElement("path", {
-        class: "sequence-ribbon",
-        d: "M 76 132 C 180 54, 304 54, 412 132 S 536 210, 592 132",
-      }),
-      createSvgElement("path", {
-        class: "sequence-ribbon-muted",
-        d: "M 120 86 C 106 44, 178 44, 164 86",
-      })
-    );
+    marker.append(createSvgElement("path", { d: "M 0 0 L 10 5 L 0 10 z" }));
+    defs.append(marker);
+    svg.append(defs);
 
-    tokens.forEach((token, index) => {
-      const x = 70 + tokenGap * index;
-      const y = index % 2 === 0 ? 132 : 92;
-      const group = createSvgElement("g", {
-        class: "sequence-node",
-        transform: `translate(${x} ${y})`,
-        "data-step": index,
-      });
+    steps.forEach((step, index) => {
+      const x = xStart + xGap * index;
 
-      group.append(
-        createSvgElement("circle", { r: 26 }),
-        createSvgElement("text", { y: 5, "text-anchor": "middle" })
-      );
-      group.querySelector("text").textContent = token;
-      svg.append(group);
+      if (index > 0) {
+        const previous = steps[index - 1];
+        const previousX = xStart + xGap * (index - 1);
+        const previousOffset = previous.omitted ? 18 : 34;
+        const currentOffset = step.omitted ? 18 : 34;
+        const isGap = previous.omitted || step.omitted;
 
-      const button = createElement("button", "diagram-button", token);
+        svg.append(
+          createSvgElement("line", {
+            class: `rnn-arrow rnn-w${isGap ? " rnn-gap-line" : ""}`,
+            x1: previousX + previousOffset,
+            y1: 154,
+            x2: x - currentOffset,
+            y2: 154,
+            "data-step": index,
+          })
+        );
+
+        const weight = createSvgElement("text", {
+          class: "weight-label",
+          x: previousX + xGap / 2,
+          y: 144,
+          "text-anchor": "middle",
+          "data-step": index,
+        });
+
+        weight.textContent = "W";
+        svg.append(weight);
+      }
+    });
+
+    steps.forEach((step, index) => {
+      const x = xStart + xGap * index;
+
+      if (step.omitted) {
+        const gap = createSvgElement("g", {
+          class: "rnn-gap-marker",
+          transform: `translate(${x} 154)`,
+          "data-step": index,
+        });
+
+        gap.append(
+          createSvgElement("circle", { cy: -14, r: 3.6 }),
+          createSvgElement("circle", { cy: 0, r: 3.6 }),
+          createSvgElement("circle", { cy: 14, r: 3.6 })
+        );
+        svg.append(gap);
+      } else {
+        const input = createSvgElement("g", { class: "rnn-node rnn-input", transform: `translate(${x} 242)`, "data-step": index });
+        const hidden = createSvgElement("g", { class: "rnn-node rnn-hidden", transform: `translate(${x} 154)`, "data-step": index });
+        const output = createSvgElement("g", { class: "rnn-node rnn-output", transform: `translate(${x} 62)`, "data-step": index });
+
+        input.append(createSvgElement("circle", { r: 28 }), createSvgElement("text", { y: 5, "text-anchor": "middle" }));
+        hidden.append(createSvgElement("circle", { r: 31 }), createSvgElement("text", { y: 5, "text-anchor": "middle" }));
+        output.append(createSvgElement("circle", { r: 28 }), createSvgElement("text", { y: 5, "text-anchor": "middle" }));
+        input.querySelector("text").textContent = step.input;
+        hidden.querySelector("text").textContent = step.hidden;
+        output.querySelector("text").textContent = step.output;
+
+        svg.append(
+          createSvgElement("line", { class: "rnn-arrow rnn-u", x1: x, y1: 214, x2: x, y2: 190, "data-step": index }),
+          createSvgElement("line", { class: "rnn-arrow rnn-v", x1: x, y1: 123, x2: x, y2: 96, "data-step": index }),
+          input,
+          hidden,
+          output
+        );
+
+        ["U", "V"].forEach((label, labelIndex) => {
+          const text = createSvgElement("text", {
+            class: "weight-label",
+            x: x + 13,
+            y: labelIndex === 0 ? 205 : 111,
+            "data-step": index,
+          });
+
+          text.textContent = label;
+          svg.append(text);
+        });
+      }
+
+      const button = createElement("button", "diagram-button", step.button);
       button.type = "button";
       button.addEventListener("click", () => activateStep(index));
       controls.append(button);
@@ -336,15 +560,15 @@
 
     const cell = createSvgElement("text", {
       class: "flow-label",
-      x: 320,
-      y: 222,
+      x: 340,
+      y: 292,
       "text-anchor": "middle",
     });
-    cell.textContent = diagram.cell;
+    cell.textContent = diagram.caption || `${diagram.cell} unfolded across T time steps`;
     svg.append(cell);
 
     function activateStep(stepIndex) {
-      svg.querySelectorAll(".sequence-node").forEach((node) => {
+      svg.querySelectorAll("[data-step]").forEach((node) => {
         const nodeStep = Number(node.dataset.step);
         node.classList.toggle("is-active", nodeStep <= stepIndex);
         node.classList.toggle("is-current", nodeStep === stepIndex);
@@ -352,7 +576,7 @@
       controls.querySelectorAll("button").forEach((button, buttonIndex) => {
         button.classList.toggle("is-active", buttonIndex === stepIndex);
       });
-      caption.textContent = `${diagram.output} carries context after step ${stepIndex + 1}.`;
+      caption.textContent = steps[stepIndex].description || `${diagram.output} carries context after ${steps[stepIndex].button}.`;
     }
 
     shell.append(svg, controls, caption);
@@ -362,111 +586,337 @@
 
   function renderGateArchitecture(panel) {
     const diagram = panel.diagram;
+    const gateItems = normalizeGates(diagram);
     const shell = createElement("div", "gate-architecture");
-    const svg = createSvgElement("svg", {
-      class: "gate-svg",
-      viewBox: "0 0 640 260",
-      role: "img",
-      "aria-label": panel.summary,
-    });
+    const figure = createElement("div", "gate-figure-stack");
     const gates = createElement("div", "diagram-controls");
     const caption = createElement("p", "diagram-caption", panel.summary);
 
-    svg.append(
-      createSvgElement("path", {
-        class: "memory-stream",
-        d: "M 70 130 C 180 58, 300 58, 420 130 S 548 202, 590 130",
-      }),
-      createSvgElement("text", {
-        class: "flow-label",
-        x: 320,
-        y: 45,
-        "text-anchor": "middle",
-      })
-    );
-    svg.querySelector("text").textContent = diagram.memory;
-
-    diagram.gates.forEach((gate, index) => {
-      const x = 170 + index * 150;
-      const group = createSvgElement("g", {
-        class: "gate-node",
-        transform: `translate(${x} 130)`,
-        "data-gate": index,
+    function createArrowDefs(id) {
+      const defs = createSvgElement("defs");
+      const marker = createSvgElement("marker", {
+        id,
+        viewBox: "0 0 10 10",
+        refX: 8,
+        refY: 5,
+        markerWidth: 6,
+        markerHeight: 6,
+        orient: "auto-start-reverse",
       });
-      const button = createElement("button", "diagram-button", gate);
+
+      marker.append(createSvgElement("path", { d: "M 0 0 L 10 5 L 0 10 z" }));
+      defs.append(marker);
+      return defs;
+    }
+
+    function addText(svg, text, x, y, className = "gate-label", attributes = {}) {
+      const node = createSvgElement("text", {
+        class: className,
+        x,
+        y,
+        "text-anchor": "middle",
+        ...attributes,
+      });
+
+      node.textContent = text;
+      svg.append(node);
+      return node;
+    }
+
+    function addArrow(svg, className, attributes) {
+      svg.append(createSvgElement("line", { class: className, ...attributes }));
+    }
+
+    function addRectLabel(svg, className, x, y, width, height, text, attributes = {}) {
+      const group = createSvgElement("g", {
+        class: className,
+        transform: `translate(${x} ${y})`,
+        ...attributes,
+      });
 
       group.append(
-        createSvgElement("circle", { r: 34 }),
-        createSvgElement("path", { class: "gate-spark", d: "M -13 0 L -3 10 L 15 -13" }),
-        createSvgElement("text", { y: 62, "text-anchor": "middle" })
+        createSvgElement("rect", { x: -width / 2, y: -height / 2, width, height, rx: 8 }),
+        createSvgElement("text", { y: 5, "text-anchor": "middle" })
       );
-      group.querySelector("text").textContent = gate;
+      group.querySelector("text").textContent = text;
       svg.append(group);
+      return group;
+    }
+
+    function addCircleLabel(svg, className, x, y, radius, text, attributes = {}) {
+      const group = createSvgElement("g", {
+        class: className,
+        transform: `translate(${x} ${y})`,
+        ...attributes,
+      });
+
+      group.append(
+        createSvgElement("circle", { r: radius }),
+        createSvgElement("text", { y: 5, "text-anchor": "middle" })
+      );
+      group.querySelector("text").textContent = text;
+      svg.append(group);
+      return group;
+    }
+
+    const lstmSvg = createSvgElement("svg", {
+      class: "gate-svg gate-cell-svg",
+      viewBox: "50 30 610 260",
+      role: "img",
+      "aria-label": "LSTM cell architecture",
+    });
+    const gruSvg = createSvgElement("svg", {
+      class: "gate-svg gate-cell-svg",
+      viewBox: "50 30 610 245",
+      role: "img",
+      "aria-label": "GRU cell architecture",
+    });
+
+    lstmSvg.append(createArrowDefs("arrow-gate-lstm"), createSvgElement("rect", { class: "gate-subcell", x: 18, y: 18, width: 664, height: 274, rx: 12 }));
+    gruSvg.append(createArrowDefs("arrow-gate-gru"), createSvgElement("rect", { class: "gate-subcell", x: 18, y: 18, width: 664, height: 238, rx: 12 }));
+
+    addText(lstmSvg, "LSTM CELL", 122, 50, "gate-title");
+    addText(lstmSvg, "c_t = f_t * c_(t-1) + i_t * c~_t", 350, 50, "gate-equation");
+    [
+      { x: 150, y: 72, w: 126, h: 172, gate: 0, label: "Forget gate" },
+      { x: 292, y: 72, w: 164, h: 172, gate: 1, label: "Input gate" },
+      { x: 482, y: 72, w: 154, h: 172, gate: 2, label: "Output gate" },
+    ].forEach((box) => {
+      lstmSvg.append(createSvgElement("rect", { class: "gate-dashed-zone", x: box.x, y: box.y, width: box.w, height: box.h, rx: 10, "data-gate": box.gate }));
+      addText(lstmSvg, box.label, box.x + box.w / 2, box.y + box.h + 22, "gate-zone-label", { "data-gate": box.gate });
+    });
+    addText(lstmSvg, "c_(t-1)", 104, 104, "gate-state-label");
+    addText(lstmSvg, "c_t", 622, 104, "gate-state-label");
+    addText(lstmSvg, "h_(t-1)", 104, 218, "gate-state-label");
+    addText(lstmSvg, "x_t", 132, 242, "gate-state-label");
+    addText(lstmSvg, "h_t", 622, 218, "gate-state-label");
+    addRectLabel(lstmSvg, "gate-chip", 198, 188, 66, 34, "sig", { "data-gate": 0 });
+    addRectLabel(lstmSvg, "gate-chip", 322, 188, 66, 34, "sig", { "data-gate": 1 });
+    addRectLabel(lstmSvg, "gate-chip gate-chip-tanh", 394, 188, 78, 34, "tanh", { "data-gate": 1 });
+    addRectLabel(lstmSvg, "gate-chip", 514, 188, 66, 34, "sig", { "data-gate": 2 });
+    addRectLabel(lstmSvg, "gate-chip gate-chip-tanh", 514, 118, 78, 34, "tanh", { "data-gate": 2 });
+    addText(lstmSvg, "f_t", 198, 160, "gate-symbol", { "data-gate": 0 });
+    addText(lstmSvg, "i_t", 322, 160, "gate-symbol", { "data-gate": 1 });
+    addText(lstmSvg, "c~_t", 394, 160, "gate-symbol", { "data-gate": 1 });
+    addText(lstmSvg, "o_t", 514, 160, "gate-symbol", { "data-gate": 2 });
+    addCircleLabel(lstmSvg, "gate-operator", 198, 104, 16, "x", { "data-gate": 0 });
+    addCircleLabel(lstmSvg, "gate-operator", 394, 104, 16, "+", { "data-gate": 1 });
+    addCircleLabel(lstmSvg, "gate-operator", 358, 140, 16, "x", { "data-gate": 1 });
+    addCircleLabel(lstmSvg, "gate-operator", 514, 158, 16, "x", { "data-gate": 2 });
+    [
+      { x1: 130, y1: 104, x2: 182, y2: 104, gate: 0, className: "gate-memory-path gate-arrow-lstm" },
+      { x1: 214, y1: 104, x2: 378, y2: 104, gate: 0, className: "gate-memory-path gate-arrow-lstm" },
+      { x1: 410, y1: 104, x2: 622, y2: 104, gate: 1, className: "gate-memory-path gate-arrow-lstm" },
+      { x1: 198, y1: 171, x2: 198, y2: 120, gate: 0, className: "gate-signal-path gate-arrow-lstm" },
+      { x1: 322, y1: 171, x2: 346, y2: 146, gate: 1, className: "gate-signal-path gate-arrow-lstm" },
+      { x1: 394, y1: 171, x2: 370, y2: 146, gate: 1, className: "gate-signal-path gate-arrow-lstm" },
+      { x1: 358, y1: 124, x2: 382, y2: 112, gate: 1, className: "gate-signal-path gate-arrow-lstm" },
+      { x1: 476, y1: 104, x2: 514, y2: 132, gate: 2, className: "gate-signal-path gate-arrow-lstm" },
+      { x1: 514, y1: 134, x2: 514, y2: 142, gate: 2, className: "gate-signal-path gate-arrow-lstm" },
+      { x1: 514, y1: 174, x2: 600, y2: 218, gate: 2, className: "gate-output-path gate-arrow-lstm" },
+      { x1: 132, y1: 228, x2: 198, y2: 207, gate: 0, className: "gate-input-path gate-arrow-lstm" },
+      { x1: 132, y1: 228, x2: 322, y2: 207, gate: 1, className: "gate-input-path gate-arrow-lstm" },
+      { x1: 132, y1: 228, x2: 394, y2: 207, gate: 1, className: "gate-input-path gate-arrow-lstm" },
+      { x1: 132, y1: 228, x2: 514, y2: 207, gate: 2, className: "gate-input-path gate-arrow-lstm" },
+    ].forEach((path) => addArrow(lstmSvg, path.className, { x1: path.x1, y1: path.y1, x2: path.x2, y2: path.y2, "data-gate": path.gate }));
+    addText(lstmSvg, "h_t = o_t * tanh(c_t)", 552, 276, "gate-equation", { "data-gate": 2 });
+
+    addText(gruSvg, "GRU CELL", 102, 48, "gate-title");
+    addText(gruSvg, "h_t = (1 - z_t) * h_(t-1) + z_t * h~_t", 385, 48, "gate-equation");
+    [
+      { x: 150, y: 88, w: 148, h: 126, gate: 1, label: "Reset gate" },
+      { x: 360, y: 88, w: 176, h: 126, gate: 1, label: "Update gate" },
+    ].forEach((box) => {
+      gruSvg.append(createSvgElement("rect", { class: "gate-dashed-zone", x: box.x, y: box.y, width: box.w, height: box.h, rx: 10, "data-gate": box.gate }));
+      addText(gruSvg, box.label, box.x + box.w / 2, box.y + box.h + 22, "gate-zone-label", { "data-gate": box.gate });
+    });
+    addText(gruSvg, "h_(t-1)", 104, 112, "gate-state-label");
+    addText(gruSvg, "x_t", 122, 238, "gate-state-label");
+    addText(gruSvg, "h_t", 620, 112, "gate-state-label");
+    addRectLabel(gruSvg, "gate-chip", 210, 184, 66, 34, "sig", { "data-gate": 1 });
+    addRectLabel(gruSvg, "gate-chip", 420, 184, 66, 34, "sig", { "data-gate": 1 });
+    addRectLabel(gruSvg, "gate-chip gate-chip-tanh", 324, 112, 78, 34, "tanh", { "data-gate": 1 });
+    addRectLabel(gruSvg, "gate-chip", 472, 78, 70, 30, "1-z_t", { "data-gate": 0 });
+    addText(gruSvg, "r_t", 210, 158, "gate-symbol", { "data-gate": 1 });
+    addText(gruSvg, "z_t", 420, 158, "gate-symbol", { "data-gate": 1 });
+    addText(gruSvg, "h~_t", 324, 84, "gate-symbol", { "data-gate": 1 });
+    addCircleLabel(gruSvg, "gate-operator", 250, 112, 15, "x", { "data-gate": 1 });
+    addCircleLabel(gruSvg, "gate-operator", 472, 112, 15, "x", { "data-gate": 0 });
+    addCircleLabel(gruSvg, "gate-operator", 520, 112, 15, "x", { "data-gate": 1 });
+    addCircleLabel(gruSvg, "gate-operator", 570, 112, 15, "+", { "data-gate": 1 });
+    [
+      { x1: 130, y1: 112, x2: 235, y2: 112, gate: 1, className: "gate-memory-path gate-arrow-gru" },
+      { x1: 130, y1: 112, x2: 457, y2: 112, gate: 0, className: "gate-memory-path gate-arrow-gru gate-muted-path" },
+      { x1: 487, y1: 112, x2: 555, y2: 112, gate: 0, className: "gate-signal-path gate-arrow-gru" },
+      { x1: 265, y1: 112, x2: 304, y2: 112, gate: 1, className: "gate-signal-path gate-arrow-gru" },
+      { x1: 364, y1: 112, x2: 505, y2: 112, gate: 1, className: "gate-signal-path gate-arrow-gru" },
+      { x1: 535, y1: 112, x2: 555, y2: 112, gate: 1, className: "gate-signal-path gate-arrow-gru" },
+      { x1: 585, y1: 112, x2: 606, y2: 112, gate: 1, className: "gate-memory-path gate-arrow-gru" },
+      { x1: 210, y1: 167, x2: 244, y2: 126, gate: 1, className: "gate-signal-path gate-arrow-gru" },
+      { x1: 420, y1: 167, x2: 505, y2: 126, gate: 1, className: "gate-signal-path gate-arrow-gru" },
+      { x1: 472, y1: 93, x2: 472, y2: 97, gate: 0, className: "gate-signal-path gate-arrow-gru" },
+      { x1: 122, y1: 224, x2: 210, y2: 202, gate: 1, className: "gate-input-path gate-arrow-gru" },
+      { x1: 122, y1: 224, x2: 420, y2: 202, gate: 1, className: "gate-input-path gate-arrow-gru" },
+      { x1: 122, y1: 224, x2: 324, y2: 130, gate: 1, className: "gate-input-path gate-arrow-gru" },
+    ].forEach((path) => addArrow(gruSvg, path.className, { x1: path.x1, y1: path.y1, x2: path.x2, y2: path.y2, "data-gate": path.gate }));
+    addText(gruSvg, "No c_t cell state; no output gate", 488, 258, "gate-equation", { "data-gate": 2 });
+
+    figure.append(lstmSvg, gruSvg);
+
+    gateItems.forEach((gate, index) => {
+      const button = createElement("button", "diagram-button", gate.label);
       button.type = "button";
       button.addEventListener("click", () => activateGate(index));
       gates.append(button);
     });
 
     function activateGate(gateIndex) {
-      svg.querySelectorAll(".gate-node").forEach((gate) => {
+      figure.querySelectorAll("[data-gate]").forEach((gate) => {
         gate.classList.toggle("is-active", Number(gate.dataset.gate) === gateIndex);
       });
       gates.querySelectorAll("button").forEach((button, buttonIndex) => {
         button.classList.toggle("is-active", buttonIndex === gateIndex);
       });
-      caption.textContent = `${diagram.gates[gateIndex]} gate controls how memory moves forward.`;
+      caption.textContent = gateItems[gateIndex].description;
     }
 
-    shell.append(svg, gates, caption);
+    shell.append(figure, gates, caption);
     elements.architectureView.replaceChildren(shell);
     activateGate(0);
   }
 
   function renderSeq2SeqArchitecture(panel) {
-    const diagram = panel.diagram;
+    const diagram = normalizeSeq2SeqDiagram(panel.diagram);
     const shell = createElement("div", "seq2seq-architecture");
     const svg = createSvgElement("svg", {
       class: "seq2seq-svg",
-      viewBox: "0 0 640 260",
+      viewBox: "0 0 1040 430",
       role: "img",
       "aria-label": panel.summary,
     });
     const controls = createElement("div", "diagram-controls");
     const caption = createElement("p", "diagram-caption", panel.summary);
+    const defs = createSvgElement("defs");
+    const marker = createSvgElement("marker", {
+      id: "arrow-seq2seq",
+      viewBox: "0 0 10 10",
+      refX: 8,
+      refY: 5,
+      markerWidth: 6,
+      markerHeight: 6,
+      orient: "auto-start-reverse",
+    });
+    const encoderX = spreadPositions(diagram.sourceSteps.length, 110, 450);
+    const decoderX = spreadPositions(diagram.targetSteps.length, 645, 970);
+    const cellY = 204;
+    const cellOffset = 44;
+    const gapOffset = 24;
+    const contextRadius = 34;
 
+    marker.append(createSvgElement("path", { d: "M 0 0 L 10 5 L 0 10 z" }));
+    defs.append(marker);
     svg.append(
-      createSvgElement("path", {
-        class: "encoder-flow",
-        d: "M 78 84 C 148 42, 218 58, 284 126",
-        "data-phase": 0,
-      }),
-      createSvgElement("path", {
-        class: "decoder-flow",
-        d: "M 356 126 C 424 58, 500 42, 566 84",
-        "data-phase": 2,
-      }),
-      createSvgElement("circle", { class: "context-orbit", cx: 320, cy: 130, r: 38, "data-phase": 1 })
+      defs,
+      createSvgElement("text", { class: "flow-label seq-section-label", x: 280, y: 42, "text-anchor": "middle" }),
+      createSvgElement("text", { class: "flow-label seq-section-label", x: 808, y: 42, "text-anchor": "middle" }),
+      createSvgElement("rect", { class: "embedding-bar", x: 60, y: 338, width: 440, height: 30, rx: 8, "data-phase": 0 }),
+      createSvgElement("rect", { class: "embedding-bar", x: 590, y: 78, width: 430, height: 30, rx: 8, "data-phase": 2 })
+    );
+    svg.querySelectorAll(".seq-section-label")[0].textContent = "ENCODER";
+    svg.querySelectorAll(".seq-section-label")[1].textContent = "DECODER";
+
+    diagram.sourceSteps.forEach((step, index) => {
+      const x = encoderX[index];
+
+      if (index > 0) {
+        const previous = diagram.sourceSteps[index - 1];
+        const previousOffset = previous.omitted ? gapOffset : cellOffset;
+        const currentOffset = step.omitted ? gapOffset : cellOffset;
+
+        svg.append(
+          createSvgElement("line", {
+            class: `seq-arrow${previous.omitted || step.omitted ? " sequence-gap-link" : ""}`,
+            x1: encoderX[index - 1] + previousOffset,
+            y1: cellY,
+            x2: x - currentOffset,
+            y2: cellY,
+            "data-phase": 0,
+          })
+        );
+      }
+
+      if (step.omitted) {
+        svg.append(
+          createSeqGapMarker("seq-gap-marker", x, cellY, 0),
+          createTokenText("...", x, 400, 0)
+        );
+        return;
+      }
+
+      svg.append(
+        createSvgElement("line", { class: "seq-arrow", x1: x, y1: 338, x2: x, y2: 244, "data-phase": 0 }),
+        createSeqCell(step.state, x, cellY, 0),
+        createTokenText(step.input, x, 400, 0)
+      );
+    });
+
+    diagram.targetSteps.forEach((step, index) => {
+      const x = decoderX[index];
+
+      if (index > 0) {
+        const previous = diagram.targetSteps[index - 1];
+        const previousOffset = previous.omitted ? gapOffset : cellOffset;
+        const currentOffset = step.omitted ? gapOffset : cellOffset;
+
+        svg.append(
+          createSvgElement("line", {
+            class: `seq-arrow${previous.omitted || step.omitted ? " sequence-gap-link" : ""}`,
+            x1: decoderX[index - 1] + previousOffset,
+            y1: cellY,
+            x2: x - currentOffset,
+            y2: cellY,
+            "data-phase": 2,
+          })
+        );
+      }
+
+      if (step.omitted) {
+        svg.append(
+          createSeqGapMarker("seq-gap-marker", x, cellY, 2),
+          createTokenText("...", x, 66, 2),
+          createTokenText("...", x, 318, 2)
+        );
+        return;
+      }
+
+      svg.append(
+        createSvgElement("line", { class: "seq-arrow", x1: x, y1: 168, x2: x, y2: 110, "data-phase": 2 }),
+        createSvgElement("line", { class: "seq-arrow", x1: x, y1: 316, x2: x, y2: 244, "data-phase": 2 }),
+        createSeqCell(step.state, x, cellY, 2),
+        createTokenText(step.output, x, 66, 2),
+        createTokenText(step.previous, x, 318, 2)
+      );
+    });
+
+    const finalEncoderIndex = findLastRealStepIndex(diagram.sourceSteps);
+    const firstDecoderIndex = findFirstRealStepIndex(diagram.targetSteps);
+    const finalEncoderX = finalEncoderIndex >= 0 ? encoderX[finalEncoderIndex] : 450;
+    const firstDecoderX = firstDecoderIndex >= 0 ? decoderX[firstDecoderIndex] : 645;
+    const contextX = 548;
+    const context = createSvgElement("g", { class: "context-node", transform: `translate(${contextX} ${cellY})`, "data-phase": 1 });
+    context.append(
+      createSvgElement("circle", { r: contextRadius }),
+      createSvgElement("text", { y: 5, "text-anchor": "middle" })
+    );
+    setSvgMathText(context.querySelector("text"), diagram.bridge);
+    svg.append(
+      createSvgElement("line", { class: "seq-arrow", x1: finalEncoderX + cellOffset, y1: cellY, x2: contextX - contextRadius, y2: cellY, "data-phase": 1 }),
+      context,
+      createSvgElement("line", { class: "seq-arrow", x1: contextX + contextRadius, y1: cellY, x2: firstDecoderX - cellOffset, y2: cellY, "data-phase": 1 })
     );
 
-    diagram.source.forEach((token, index) => {
-      svg.append(createSeqNode(token, 70 + index * 54, 84 + (index % 2) * 42, "source"));
-    });
-    diagram.target.forEach((token, index) => {
-      svg.append(createSeqNode(token, 420 + index * 48, 84 + (index % 2) * 42, "target"));
-    });
-
-    const context = createSvgElement("text", {
-      class: "context-label",
-      x: 320,
-      y: 136,
-      "text-anchor": "middle",
-      "data-phase": 1,
-    });
-    context.textContent = diagram.bridge;
-    svg.append(context);
-
-    ["Encoder", "Context", "Decoder"].forEach((label, phaseIndex) => {
-      const button = createElement("button", "diagram-button", label);
+    diagram.phases.forEach((phase, phaseIndex) => {
+      const button = createElement("button", "diagram-button", phase.label);
 
       button.type = "button";
       button.addEventListener("click", () => activatePhase(phaseIndex));
@@ -480,14 +930,128 @@
       controls.querySelectorAll("button").forEach((button, buttonIndex) => {
         button.classList.toggle("is-active", buttonIndex === phaseIndex);
       });
-      caption.textContent = ["Encoder reads x_1...x_T.", "Context z carries the compressed source.", "Decoder writes y_1...y_S."][
-        phaseIndex
-      ];
+      caption.textContent = diagram.phases[phaseIndex].caption;
     }
 
     shell.append(svg, controls, caption);
     elements.architectureView.replaceChildren(shell);
-    activatePhase(1);
+    activatePhase(0);
+  }
+
+  function createSeqCell(label, x, y, phaseIndex) {
+    const group = createSvgElement("g", {
+      class: "seq-cell",
+      transform: `translate(${x} ${y})`,
+      "data-phase": phaseIndex,
+    });
+
+    group.append(
+      createSvgElement("rect", { x: -39, y: -34, width: 78, height: 68, rx: 14 }),
+      createSvgElement("text", { y: 5, "text-anchor": "middle" })
+    );
+    setSvgMathText(group.querySelector("text"), label);
+    return group;
+  }
+
+  function createSeqGapMarker(className, x, y, phaseIndex) {
+    const attributes = {
+      class: className,
+      transform: `translate(${x} ${y})`,
+    };
+
+    if (phaseIndex !== undefined) {
+      attributes["data-phase"] = phaseIndex;
+    }
+
+    const group = createSvgElement("g", attributes);
+
+    group.append(
+      createSvgElement("circle", { cy: -13, r: 3.4 }),
+      createSvgElement("circle", { cy: 0, r: 3.4 }),
+      createSvgElement("circle", { cy: 13, r: 3.4 })
+    );
+    return group;
+  }
+
+  function createTokenText(label, x, y, phaseIndex) {
+    const token = createSvgElement("text", {
+      class: "token-label",
+      x,
+      y,
+      "text-anchor": "middle",
+      "data-phase": phaseIndex,
+    });
+
+    setSvgMathText(token, label);
+    return token;
+  }
+
+  function setSvgMathText(textNode, label) {
+    const value = String(label);
+    const subscriptMatch = value.match(/^([A-Za-z]+)_\((.+)\)$/) || value.match(/^([A-Za-z]+)_([A-Za-z0-9]+)$/);
+
+    textNode.replaceChildren();
+
+    if (subscriptMatch) {
+      textNode.classList.add("svg-math");
+      textNode.append(
+        createSvgElement("tspan", { class: "math-base" }),
+        createSvgElement("tspan", { class: "math-sub", "baseline-shift": "sub" })
+      );
+      textNode.querySelector(".math-base").textContent = subscriptMatch[1];
+      textNode.querySelector(".math-sub").textContent = subscriptMatch[2];
+      return;
+    }
+
+    if (/^[A-Za-z]$/.test(value)) {
+      textNode.classList.add("svg-math");
+    }
+
+    textNode.textContent = value;
+  }
+
+  function spreadPositions(count, start, end) {
+    if (count <= 1) {
+      return [start + (end - start) / 2];
+    }
+
+    const gap = (end - start) / (count - 1);
+    return Array.from({ length: count }, (_, index) => start + gap * index);
+  }
+
+  function findFirstRealStepIndex(steps) {
+    return steps.findIndex((step) => !step.omitted);
+  }
+
+  function findLastRealStepIndex(steps) {
+    for (let index = steps.length - 1; index >= 0; index -= 1) {
+      if (!steps[index].omitted) {
+        return index;
+      }
+    }
+
+    return -1;
+  }
+
+  function renderQmlProjectsArchitecture(panel) {
+    const shell = createElement("div", "qml-bridge-view");
+    const intro = createElement("p", "diagram-caption", panel.summary);
+    const grid = createElement("div", "qml-grid qml-grid-inline");
+
+    projects.forEach((project) => {
+      const card = createElement("article", "project-card");
+      const label = createElement("div", "project-number", project.label);
+      const title = createElement("h3", "", project.title);
+      const placeholder = createElement("p", "", project.placeholder);
+      const block = createElement("div", "placeholder-block");
+
+      block.append(placeholder);
+      card.append(label, title, block);
+      grid.append(card);
+    });
+
+    shell.append(intro, grid);
+    elements.architectureView.replaceChildren(shell);
   }
 
   function createSeqNode(label, x, y, phase) {
@@ -520,6 +1084,18 @@
   function renderArchitecturePanel(panel) {
     if (!elements.architectureView) {
       return;
+    }
+
+    const isSeq2Seq = Boolean(panel.diagram && panel.diagram.type === "seq2seq");
+    const architecturePanel = elements.architectureView.closest(".architecture-panel");
+    const demoPanel = elements.demoView ? elements.demoView.closest(".demo-panel") : null;
+
+    if (architecturePanel) {
+      architecturePanel.classList.toggle("is-wide", isSeq2Seq);
+    }
+
+    if (demoPanel) {
+      demoPanel.classList.toggle("is-wide", isSeq2Seq);
     }
 
     elements.architectureView.classList.remove("is-content-view");
@@ -556,6 +1132,11 @@
       return;
     }
 
+    if (panel.diagram.type === "qml-projects") {
+      renderQmlProjectsArchitecture(panel);
+      return;
+    }
+
     renderEmptyArchitecture(panel);
   }
 
@@ -588,12 +1169,12 @@
         const equation = createElement("div", "step-equation");
         const copy = createElement("p", "", step.copy);
 
-        equation.innerHTML = step.equationHtml || step.equation;
+        equation.innerHTML = step.equationMath || step.equationHtml || step.equation;
         card.append(meta, title, equation, copy);
         steps.append(card);
       });
 
-      formula.innerHTML = panel.formulaHtml || panel.formula;
+      formula.innerHTML = panel.formulaMath || panel.formulaHtml || panel.formula;
       panel.terms.forEach((term) => {
         terms.append(createElement("span", "term-chip", term));
       });
@@ -604,7 +1185,7 @@
       return;
     }
 
-    formula.innerHTML = panel.formulaHtml || panel.formula;
+    formula.innerHTML = panel.formulaMath || panel.formulaHtml || panel.formula;
 
     panel.terms.forEach((term) => {
       terms.append(createElement("span", "term-chip", term));
@@ -638,23 +1219,38 @@
       role: "img",
       "aria-label": panel.title,
     });
-    const region = createSvgElement("path", { class: "boundary-region" });
-    const path = createSvgElement("path", { class: "boundary-line" });
+    const regionGroup = createSvgElement("g", { class: "boundary-regions" });
+    const lineGroup = createSvgElement("g", { class: "boundary-lines" });
     const pointGroup = createSvgElement("g", { class: "point-group" });
 
     svg.append(
       createSvgElement("rect", { class: "boundary-plane", x: 0, y: 0, width: 100, height: 100 }),
-      region,
-      path,
+      regionGroup,
+      lineGroup,
       pointGroup
     );
     stage.append(svg);
 
     function activateState(stateIndex) {
       const state = panel.states[stateIndex];
+      const regionPaths = state.regionPaths || (state.regionPath ? [state.regionPath] : []);
+      const boundaryPaths = state.paths || (state.path ? [state.path] : []);
 
-      region.setAttribute("d", state.regionPath || "");
-      path.setAttribute("d", state.path);
+      regionGroup.replaceChildren(
+        ...regionPaths.map((regionPath) => {
+          if (typeof regionPath === "string") {
+            return createSvgElement("path", { class: "boundary-region", d: regionPath });
+          }
+
+          return createSvgElement("path", {
+            class: `boundary-region ${regionPath.className || ""}`,
+            d: regionPath.d,
+          });
+        })
+      );
+      lineGroup.replaceChildren(
+        ...boundaryPaths.map((boundaryPath) => createSvgElement("path", { class: "boundary-line", d: boundaryPath }))
+      );
       pointGroup.replaceChildren(
         ...state.points.map((point) =>
           createSvgElement("circle", {
@@ -680,38 +1276,107 @@
     });
 
     elements.demoView.replaceChildren(shell);
-    activateState(0);
+    activateState(panel.initialState || 0);
   }
 
   function renderSequenceDemo(panel, architecture) {
     const { shell, stage, buttons, caption } = createDemoShell(panel);
-    const tokens = architecture.diagram.tokens || [];
+    const steps = normalizeSequenceSteps(architecture.diagram);
     const svg = createSvgElement("svg", {
       class: "sequence-demo-svg",
-      viewBox: "0 0 640 190",
+      viewBox: "0 0 640 220",
       role: "img",
       "aria-label": panel.title,
     });
-    const activeRibbon = createSvgElement("path", {
-      class: "sequence-active-ribbon",
-      d: "M 78 96 C 180 34, 302 34, 406 96 S 536 158, 592 96",
+    const defs = createSvgElement("defs");
+    const marker = createSvgElement("marker", {
+      id: "arrow-sequence-demo",
+      viewBox: "0 0 10 10",
+      refX: 8,
+      refY: 5,
+      markerWidth: 6,
+      markerHeight: 6,
+      orient: "auto-start-reverse",
+    });
+    const xStart = 72;
+    const xGap = steps.length > 1 ? 500 / (steps.length - 1) : 0;
+
+    marker.append(createSvgElement("path", { d: "M 0 0 L 10 5 L 0 10 z" }));
+    defs.append(marker);
+    svg.append(defs);
+
+    steps.forEach((step, index) => {
+      if (index === 0) {
+        return;
+      }
+
+      const previous = steps[index - 1];
+      const previousX = xStart + xGap * (index - 1);
+      const x = xStart + xGap * index;
+      const previousOffset = previous.omitted ? 18 : 28;
+      const currentOffset = step.omitted ? 18 : 28;
+
+      svg.append(
+        createSvgElement("line", {
+          class: `sequence-state-link sequence-demo-arrow${previous.omitted || step.omitted ? " sequence-gap-link" : ""}`,
+          x1: previousX + previousOffset,
+          y1: 54,
+          x2: x - currentOffset,
+          y2: 54,
+          "data-step": index,
+        })
+      );
     });
 
-    svg.append(
-      createSvgElement("path", {
-        class: "sequence-ribbon",
-        d: "M 78 96 C 180 34, 302 34, 406 96 S 536 158, 592 96",
-      }),
-      activeRibbon
-    );
+    steps.forEach((step, index) => {
+      const x = xStart + xGap * index;
 
-    tokens.forEach((token, index) => {
-      const x = 76 + (500 / (tokens.length - 1)) * index;
-      const y = index % 2 === 0 ? 96 : 66;
-      const node = createSeqNode(token, x, y, "source");
+      if (step.omitted) {
+        const gap = createSvgElement("g", {
+          class: "seq-demo-gap",
+          transform: `translate(${x} 54)`,
+          "data-step": index,
+        });
 
-      node.dataset.step = String(index);
-      svg.append(node);
+        gap.append(
+          createSvgElement("circle", { cy: -13, r: 3.4 }),
+          createSvgElement("circle", { cy: 0, r: 3.4 }),
+          createSvgElement("circle", { cy: 13, r: 3.4 })
+        );
+        svg.append(gap);
+        return;
+      }
+
+      const state = createSvgElement("g", {
+        class: "seq-demo-state",
+        transform: `translate(${x} 54)`,
+        "data-step": index,
+      });
+      const cell = createSvgElement("g", {
+        class: "seq-state-cell",
+        transform: `translate(${x} 113)`,
+        "data-step": index,
+      });
+      const input = createSvgElement("g", {
+        class: "seq-demo-input",
+        transform: `translate(${x} 172)`,
+        "data-step": index,
+      });
+
+      state.append(createSvgElement("circle", { r: 23 }), createSvgElement("text", { y: 5, "text-anchor": "middle" }));
+      cell.append(createSvgElement("rect", { x: -34, y: -19, width: 68, height: 38, rx: 9 }), createSvgElement("text", { y: 5, "text-anchor": "middle" }));
+      input.append(createSvgElement("rect", { x: -28, y: -16, width: 56, height: 32, rx: 8 }), createSvgElement("text", { y: 5, "text-anchor": "middle" }));
+      state.querySelector("text").textContent = step.hidden;
+      cell.querySelector("text").textContent = "RNN";
+      input.querySelector("text").textContent = step.input;
+
+      svg.append(
+        createSvgElement("line", { class: "sequence-demo-arrow", x1: x, y1: 156, x2: x, y2: 137, "data-step": index }),
+        createSvgElement("line", { class: "sequence-demo-arrow", x1: x, y1: 94, x2: x, y2: 80, "data-step": index }),
+        state,
+        cell,
+        input
+      );
     });
 
     stage.append(svg);
@@ -719,12 +1384,11 @@
     function activateState(stateIndex) {
       const state = panel.states[stateIndex];
 
-      svg.querySelectorAll(".seq-node").forEach((token) => {
-        const tokenIndex = Number(token.dataset.step);
-        token.classList.toggle("is-active", tokenIndex <= state.activeStep);
-        token.classList.toggle("is-current", tokenIndex === state.activeStep);
+      svg.querySelectorAll(".seq-demo-state, .seq-state-cell, .seq-demo-input, .seq-demo-gap, .sequence-demo-arrow").forEach((node) => {
+        const nodeStep = Number(node.dataset.step);
+        node.classList.toggle("is-active", nodeStep <= state.activeStep);
+        node.classList.toggle("is-current", nodeStep === state.activeStep);
       });
-      activeRibbon.style.strokeDashoffset = String(260 - state.activeStep * 82);
       caption.textContent = state.caption;
       buttons.querySelectorAll("button").forEach((button, buttonIndex) => {
         button.classList.toggle("is-active", buttonIndex === stateIndex);
@@ -740,42 +1404,65 @@
     });
 
     elements.demoView.replaceChildren(shell);
-    activateState(0);
+    activateState(panel.initialState || 0);
   }
 
   function renderGateDemo(panel, architecture) {
     const { shell, stage, buttons, caption } = createDemoShell(panel);
-    const gates = architecture.diagram.gates || [];
+    const gates = normalizeGates(architecture.diagram);
     const svg = createSvgElement("svg", {
       class: "gate-demo-svg",
-      viewBox: "0 0 640 190",
+      viewBox: "0 0 640 230",
       role: "img",
       "aria-label": panel.title,
     });
+    const defs = createSvgElement("defs");
+    const marker = createSvgElement("marker", {
+      id: "arrow-gate-demo",
+      viewBox: "0 0 10 10",
+      refX: 8,
+      refY: 5,
+      markerWidth: 6,
+      markerHeight: 6,
+      orient: "auto-start-reverse",
+    });
+
+    marker.append(createSvgElement("path", { d: "M 0 0 L 10 5 L 0 10 z" }));
+    defs.append(marker);
 
     svg.append(
-      createSvgElement("path", {
-        class: "memory-stream",
-        d: "M 62 94 C 180 28, 318 28, 440 94 S 558 160, 592 94",
-      }),
-      createSvgElement("path", {
-        class: "gate-flow-line",
-        d: "M 130 142 C 238 106, 390 106, 506 142",
-      })
+      defs,
+      createSvgElement("rect", { class: "gate-demo-state", x: 38, y: 82, width: 118, height: 52, rx: 8 }),
+      createSvgElement("rect", { class: "gate-demo-unit", x: 226, y: 66, width: 188, height: 92, rx: 10 }),
+      createSvgElement("rect", { class: "gate-demo-state", x: 486, y: 82, width: 118, height: 52, rx: 8 }),
+      createSvgElement("rect", { class: "gate-demo-input", x: 244, y: 178, width: 152, height: 36, rx: 8 }),
+      createSvgElement("line", { class: "gate-demo-path gate-demo-memory", x1: 156, y1: 108, x2: 226, y2: 108, "data-gate": 0 }),
+      createSvgElement("line", { class: "gate-demo-path gate-demo-memory", x1: 414, y1: 108, x2: 486, y2: 108, "data-gate": 0 }),
+      createSvgElement("line", { class: "gate-demo-path gate-demo-write", x1: 320, y1: 178, x2: 320, y2: 144, "data-gate": 1 }),
+      createSvgElement("line", { class: "gate-demo-path gate-demo-read", x1: 545, y1: 82, x2: 545, y2: 48, "data-gate": 2 }),
+      createSvgElement("text", { class: "flow-label", x: 97, y: 112, "text-anchor": "middle" }),
+      createSvgElement("text", { class: "flow-label", x: 545, y: 112, "text-anchor": "middle" }),
+      createSvgElement("text", { class: "flow-label", x: 320, y: 202, "text-anchor": "middle" }),
+      createSvgElement("text", { class: "flow-label", x: 545, y: 38, "text-anchor": "middle", "data-gate": 2 })
     );
+    svg.querySelectorAll(".flow-label")[0].textContent = "m_(t-1)";
+    svg.querySelectorAll(".flow-label")[1].textContent = "m_t";
+    svg.querySelectorAll(".flow-label")[2].textContent = "x_t + h_(t-1)";
+    svg.querySelectorAll(".flow-label")[3].textContent = "h_t";
 
     gates.forEach((gate, index) => {
+      const x = 272 + index * 48;
       const group = createSvgElement("g", {
         class: "gate-node",
-        transform: `translate(${170 + index * 150} 94)`,
+        transform: `translate(${x} 108)`,
         "data-gate": index,
       });
 
       group.append(
-        createSvgElement("circle", { r: 30 }),
+        createSvgElement("rect", { x: -23, y: -18, width: 46, height: 36, rx: 7 }),
         createSvgElement("text", { y: 5, "text-anchor": "middle" })
       );
-      group.querySelector("text").textContent = gate;
+      group.querySelector("text").textContent = gate.short;
       svg.append(group);
     });
 
@@ -784,8 +1471,8 @@
     function activateState(stateIndex) {
       const state = panel.states[stateIndex];
 
-      svg.querySelectorAll(".gate-node").forEach((gate, gateIndex) => {
-        gate.classList.toggle("is-active", gateIndex === state.activeGate);
+      svg.querySelectorAll("[data-gate]").forEach((item) => {
+        item.classList.toggle("is-active", Number(item.dataset.gate) === state.activeGate);
       });
       caption.textContent = state.caption;
       buttons.querySelectorAll("button").forEach((button, buttonIndex) => {
@@ -802,55 +1489,134 @@
     });
 
     elements.demoView.replaceChildren(shell);
-    activateState(0);
+    activateState(panel.initialState || 0);
   }
 
   function renderEncoderDecoderDemo(panel, architecture) {
     const { shell, stage, buttons, caption } = createDemoShell(panel);
-    const diagram = architecture.diagram;
+    const diagram = normalizeSeq2SeqDiagram(architecture.diagram);
+    const sourceX = spreadPositions(diagram.sourceSteps.length, 72, 258);
+    const targetX = spreadPositions(diagram.targetSteps.length, 438, 626);
+    const tokenY = 78;
+    const contextX = 350;
+    const contextY = 116;
     const svg = createSvgElement("svg", {
       class: "seq2seq-demo-svg",
-      viewBox: "0 0 640 210",
+      viewBox: "0 0 700 230",
       role: "img",
       "aria-label": panel.title,
     });
+    const defs = createSvgElement("defs");
+    const marker = createSvgElement("marker", {
+      id: "arrow-seq2seq-demo",
+      viewBox: "0 0 10 10",
+      refX: 8,
+      refY: 5,
+      markerWidth: 6,
+      markerHeight: 6,
+      orient: "auto-start-reverse",
+    });
+
+    marker.append(createSvgElement("path", { d: "M 0 0 L 10 5 L 0 10 z" }));
+    defs.append(marker);
+    svg.append(defs);
+
+    drawDemoSequenceLinks(diagram.sourceSteps, sourceX, tokenY, 0, "source");
+    drawDemoSequenceLinks(diagram.targetSteps, targetX, tokenY, 2, "target");
 
     svg.append(
+      createSvgElement("text", { class: "flow-label seq-section-label", x: 166, y: 34, "text-anchor": "middle", "data-phase": 0 }),
+      createSvgElement("text", { class: "flow-label seq-section-label", x: 350, y: 34, "text-anchor": "middle", "data-phase": 1 }),
+      createSvgElement("text", { class: "flow-label seq-section-label", x: 532, y: 34, "text-anchor": "middle", "data-phase": 2 }),
       createSvgElement("path", {
         class: "encoder-flow",
-        d: "M 80 74 C 154 30, 226 48, 288 104",
+        d: "M 78 134 C 154 174, 252 164, 316 118",
         "data-phase": 0,
       }),
       createSvgElement("path", {
         class: "context-pulse",
-        d: "M 292 104 C 312 88, 332 88, 352 104",
+        d: "M 318 116 C 336 98, 364 98, 382 116",
         "data-phase": 1,
       }),
       createSvgElement("path", {
         class: "decoder-flow",
-        d: "M 352 104 C 422 48, 502 30, 566 74",
+        d: "M 384 118 C 452 164, 552 174, 622 134",
         "data-phase": 2,
       }),
-      createSvgElement("circle", { class: "context-orbit", cx: 320, cy: 108, r: 34, "data-phase": 1 })
+      createSvgElement("circle", { class: "context-orbit", cx: contextX, cy: contextY, r: 34, "data-phase": 1 })
     );
+    svg.querySelectorAll(".seq-section-label")[0].textContent = "SOURCE";
+    svg.querySelectorAll(".seq-section-label")[1].textContent = "CONTEXT";
+    svg.querySelectorAll(".seq-section-label")[2].textContent = "TARGET";
 
-    diagram.source.forEach((token, index) => {
-      svg.append(createSeqNode(token, 76 + index * 54, 74 + (index % 2) * 42, "source"));
+    diagram.sourceSteps.forEach((step, index) => {
+      if (step.omitted) {
+        svg.append(createSeqGapMarker("seq-demo-gap", sourceX[index], tokenY, 0));
+        return;
+      }
+
+      svg.append(createSeqDemoToken(step.input, sourceX[index], tokenY, 0));
     });
-    diagram.target.forEach((token, index) => {
-      svg.append(createSeqNode(token, 420 + index * 48, 74 + (index % 2) * 42, "target"));
+    diagram.targetSteps.forEach((step, index) => {
+      if (step.omitted) {
+        svg.append(createSeqGapMarker("seq-demo-gap", targetX[index], tokenY, 2));
+        return;
+      }
+
+      svg.append(createSeqDemoToken(step.output, targetX[index], tokenY, 2));
     });
 
     const context = createSvgElement("text", {
       class: "context-label",
-      x: 320,
-      y: 114,
+      x: contextX,
+      y: contextY + 6,
       "text-anchor": "middle",
       "data-phase": 1,
     });
-    context.textContent = "z";
+    context.textContent = diagram.bridge;
     svg.append(context);
     stage.append(svg);
+
+    function createSeqDemoToken(label, x, y, phaseIndex) {
+      const width = Math.max(48, label.length * 8 + 22);
+      const group = createSvgElement("g", {
+        class: "seq-demo-input",
+        transform: `translate(${x} ${y})`,
+        "data-phase": phaseIndex,
+      });
+
+      group.append(
+        createSvgElement("rect", { x: -width / 2, y: -16, width, height: 32, rx: 8 }),
+        createSvgElement("text", { y: 5, "text-anchor": "middle" })
+      );
+      group.querySelector("text").textContent = label;
+      return group;
+    }
+
+    function drawDemoSequenceLinks(steps, positions, y, phaseIndex, type) {
+      steps.forEach((step, index) => {
+        if (index === 0) {
+          return;
+        }
+
+        const previous = steps[index - 1];
+        const previousLabel = type === "source" ? previous.input : previous.output;
+        const currentLabel = type === "source" ? step.input : step.output;
+        const previousOffset = previous.omitted ? 14 : Math.max(24, previousLabel.length * 4 + 11);
+        const currentOffset = step.omitted ? 14 : Math.max(24, currentLabel.length * 4 + 11);
+
+        svg.append(
+          createSvgElement("line", {
+            class: `seq2seq-demo-link${previous.omitted || step.omitted ? " sequence-gap-link" : ""}`,
+            x1: positions[index - 1] + previousOffset,
+            y1: y,
+            x2: positions[index] - currentOffset,
+            y2: y,
+            "data-phase": phaseIndex,
+          })
+        );
+      });
+    }
 
     function activateState(stateIndex) {
       const state = panel.states[stateIndex];
@@ -873,7 +1639,7 @@
     });
 
     elements.demoView.replaceChildren(shell);
-    activateState(0);
+    activateState(panel.initialState || 0);
   }
 
   function renderDemoPanel(panel, architecture) {
@@ -962,6 +1728,30 @@
     elements.metricsView.replaceChildren(content);
   }
 
+  function renderInsightStrip(panels) {
+    if (!elements.insightView) {
+      return;
+    }
+
+    const pieces = createElement("section", "insight-group");
+    const piecesTitle = createElement("h3", "", panels.controls.label);
+    const piecesList = createElement("div", "note-list");
+    const limits = createElement("section", "insight-group insight-group-wide");
+    const limitsTitle = createElement("h3", "", panels.metrics.title || panels.metrics.label);
+    const limitsList = createElement("div", "note-list");
+
+    panels.controls.items.forEach((item) => {
+      piecesList.append(createElement("span", "note-chip", item));
+    });
+    panels.metrics.points.forEach((point) => {
+      limitsList.append(createElement("span", "note-chip", point));
+    });
+
+    pieces.append(piecesTitle, piecesList);
+    limits.append(limitsTitle, limitsList);
+    elements.insightView.replaceChildren(pieces, limits);
+  }
+
   function createTimelineItem(model, position) {
     const button = document.createElement("button");
     const number = document.createElement("span");
@@ -977,7 +1767,7 @@
     button.append(number, document.createTextNode(model.title));
 
     button.addEventListener("click", () => {
-      setActiveModel(model.id);
+      setActiveModel(model.id, true);
     });
 
     return button;
@@ -1023,7 +1813,31 @@
     elements.qmlProjects.replaceChildren(...projectCards);
   }
 
-  function renderModelBrief(model) {
+  function renderFormulaStrip(panel) {
+    if (!elements.formulaStrip) {
+      return;
+    }
+
+    if (!panel.formula) {
+      elements.formulaStrip.replaceChildren();
+      elements.formulaStrip.hidden = true;
+      return;
+    }
+
+    const label = createElement("span", "formula-label", panel.label);
+    const formula = createElement("div", "formula formula-inline");
+    const terms = createElement("div", "term-list formula-terms");
+
+    formula.innerHTML = panel.formulaMath || panel.formulaHtml || panel.formula;
+    panel.terms.slice(0, 3).forEach((term) => {
+      terms.append(createElement("span", "term-chip", term));
+    });
+
+    elements.formulaStrip.hidden = false;
+    elements.formulaStrip.replaceChildren(label, formula, terms);
+  }
+
+  function renderModelBrief(model, panels) {
     if (!elements.modelBrief) {
       return;
     }
@@ -1036,9 +1850,10 @@
     );
 
     elements.modelBrief.replaceChildren(year, copy);
+    renderFormulaStrip(panels.math);
   }
 
-  function setActiveModel(modelId) {
+  function setActiveModel(modelId, shouldUpdateHash = false) {
     const activeIndex = models.findIndex((model) => model.id === modelId);
     const activeModel = models[activeIndex];
 
@@ -1046,10 +1861,14 @@
       return;
     }
 
+    if (shouldUpdateHash) {
+      history.replaceState(null, "", `#${modelId}`);
+    }
+
     const panels = activeModel.panels;
 
     setText(elements.title, activeModel.title);
-    renderModelBrief(activeModel);
+    renderModelBrief(activeModel, panels);
     setText(elements.model, activeModel.title);
     setText(elements.index, getDisplayIndex(activeIndex));
     setText(elements.mathLabel, panels.math.label);
@@ -1062,6 +1881,7 @@
     renderDemoPanel(panels.demo, panels.architecture);
     renderControlsPanel(panels.controls);
     renderMetricsPanel(panels.metrics);
+    renderInsightStrip(panels);
 
     document.querySelectorAll(".timeline-item").forEach((item) => {
       const isActive = item.dataset.model === modelId;
@@ -1078,5 +1898,5 @@
 
   renderTimeline();
   renderProjects();
-  setActiveModel(models[0].id);
+  setActiveModel(models.some((model) => model.id === location.hash.slice(1)) ? location.hash.slice(1) : models[0].id);
 })();

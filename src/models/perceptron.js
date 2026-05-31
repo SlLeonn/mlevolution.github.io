@@ -6,8 +6,8 @@
       title: "Perceptron",
       year: "1958",
       overview: {
-        what: "A perceptron is the simplest trainable neuron: it learns a straight boundary between classes.",
-        consists: "It combines n inputs with n weights, adds a bias, and passes the result through a threshold.",
+        what: "A perceptron is the simplest trainable neuron: it learns one straight boundary between classes.",
+        consists: "Because its structure is only a weighted sum plus a threshold, it can solve only linearly separable problems.",
       },
       panels: {
         architecture: {
@@ -15,7 +15,7 @@
           diagram: {
             type: "network",
             layers: [
-              { label: "n inputs", nodes: ["x1", "...", "xn"] },
+              { label: "n inputs", nodes: ["x1", "x2", "...", "xn"] },
               { label: "weighted sum", nodes: ["sum"] },
               { label: "decision", nodes: ["y"] },
             ],
@@ -24,7 +24,8 @@
         math: {
           label: "Linear threshold",
           formula: "y = step(sum_i w_i*x_i + b)",
-          formulaHtml: "y = step(&sum;<sub>i=1</sub><sup>n</sup> w<sub>i</sub>x<sub>i</sub> + b)",
+          formulaMath:
+            '<math display="block"><mi>y</mi><mo>=</mo><mi>step</mi><mo>(</mo><munderover><mo>&sum;</mo><mrow><mi>i</mi><mo>=</mo><mn>1</mn></mrow><mi>n</mi></munderover><msub><mi>w</mi><mi>i</mi></msub><msub><mi>x</mi><mi>i</mi></msub><mo>+</mo><mi>b</mi><mo>)</mo></math>',
           terms: ["n inputs", "w_i: one weight per input", "b: bias", "step: yes/no activation"],
           note: "It is powerful enough for linearly separable data, but it cannot bend the boundary.",
         },
@@ -48,28 +49,26 @@
               ],
             },
             {
-              label: "Hard pattern",
-              caption: "If the classes curve around each other, a single linear cut is not enough.",
-              path: "M 16 52 L 86 52",
+              label: "XOR",
+              caption: "XOR places equal classes on opposite corners, so no single line can separate them.",
+              path: "M 12 18 L 88 82",
               points: [
-                { x: 28, y: 28, className: "a" },
-                { x: 48, y: 30, className: "a" },
-                { x: 70, y: 34, className: "a" },
-                { x: 24, y: 74, className: "b" },
-                { x: 52, y: 67, className: "b" },
-                { x: 78, y: 72, className: "b" },
+                { x: 24, y: 24, className: "a" },
+                { x: 76, y: 76, className: "a" },
+                { x: 24, y: 76, className: "b" },
+                { x: 76, y: 24, className: "b" },
               ],
             },
           ],
         },
         controls: {
-          label: "Training idea",
+          label: "Core pieces",
           items: ["n weights", "bias", "threshold"],
         },
         metrics: {
           label: "Evolution link",
-          title: "Why move forward",
-          points: ["Easy to understand", "Only linear boundaries", "Seeds the idea of a neuron"],
+          title: "What to remember",
+          points: ["Strength: simple and interpretable", "Limitation: cannot solve XOR", "Next step: stack neurons into layers"],
         },
       },
     })
