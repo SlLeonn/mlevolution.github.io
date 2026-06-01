@@ -51,40 +51,50 @@
         },
         math: {
           label: "Encoder to decoder",
-          formula: "z = Encoder(x_1...x_T), y_t = Decoder(y_(t-1), z)",
+          formula: "h_t = phi(W_x x_t + W_h h_(t-1)), z = h_T, s_t = phi(W_y e(y_(t-1)) + W_s s_(t-1) + W_z z)",
           formulaMath:
-            '<math display="block"><mi>z</mi><mo>=</mo><mi>Enc</mi><mo>(</mo><msub><mi>x</mi><mn>1</mn></msub><mo>,</mo><mo>...</mo><mo>,</mo><msub><mi>x</mi><mi>T</mi></msub><mo>)</mo><mo>,</mo><mspace width="0.6em"/><msub><mi>y</mi><mi>t</mi></msub><mo>=</mo><mi>Dec</mi><mo>(</mo><msub><mi>y</mi><mrow><mi>t</mi><mo>-</mo><mn>1</mn></mrow></msub><mo>,</mo><mi>z</mi><mo>)</mo></math>',
-          terms: ["h_t: encoder state", "z: context vector", "s_t: decoder state", "T source steps", "S target steps"],
+            '<math display="block"><msub><mi>h</mi><mi>t</mi></msub><mo>=</mo><mi>&phi;</mi><mo>(</mo><msub><mi>W</mi><mi>x</mi></msub><msub><mi>x</mi><mi>t</mi></msub><mo>+</mo><msub><mi>W</mi><mi>h</mi></msub><msub><mi>h</mi><mrow><mi>t</mi><mo>-</mo><mn>1</mn></mrow></msub><mo>)</mo><mo>,</mo><mspace width="0.6em"/><mi>z</mi><mo>=</mo><msub><mi>h</mi><mi>T</mi></msub><mo>,</mo><mspace width="0.6em"/><mi>p</mi><mo>(</mo><msub><mi>y</mi><mi>t</mi></msub><mo>)</mo><mo>=</mo><mi>softmax</mi><mo>(</mo><msub><mi>W</mi><mi>o</mi></msub><msub><mi>s</mi><mi>t</mi></msub><mo>)</mo></math>',
+          terms: [
+            "x_t: source token",
+            "h_t: encoder state",
+            "z: context vector",
+            "s_t: decoder state",
+            "e(y): previous-token embedding",
+            "p(y_t): next-token probabilities",
+          ],
           intro:
-            "Seq2Seq separates a problem into reading and writing. The encoder first turns the source sequence into memory; the decoder then turns that memory into a new sequence.",
+            "Inside a classic Seq2Seq model there are two recurrent updates: one reads the source into h_t, and the other writes the target from s_t. The context vector z connects both halves.",
           steps: [
             {
               meta: "01 / encode source",
-              title: "Read the input sequence",
-              equationHtml: "h<sub>t</sub> = EncCell(x<sub>t</sub>, h<sub>t-1</sub>)",
+              title: "Update source memory",
+              equationHtml:
+                "h<sub>t</sub> = &phi;(W<sub>x</sub>x<sub>t</sub> + W<sub>h</sub>h<sub>t-1</sub> + b<sub>h</sub>)",
               copy:
-                "The same encoder cell is reused across source positions, so h_t stores what the model knows after reading up to x_t.",
+                "The encoder combines the current source token with the previous encoder state. Reusing the same weights lets it read any source length T.",
             },
             {
               meta: "02 / bridge",
-              title: "Compress into context",
+              title: "Pass one fixed summary",
               equationHtml: "z = h<sub>T</sub>",
               copy:
-                "Classic Seq2Seq passes the final encoder state to the decoder as a fixed-size summary of the whole input.",
+                "The final encoder state becomes the context vector. This is the classic bottleneck: the decoder receives the whole source through z.",
             },
             {
               meta: "03 / decode target",
-              title: "Generate one step at a time",
-              equationHtml: "s<sub>t</sub> = DecCell(y<sub>t-1</sub>, s<sub>t-1</sub>, z)",
+              title: "Update target memory",
+              equationHtml:
+                "s<sub>t</sub> = &phi;(W<sub>y</sub>e(y<sub>t-1</sub>) + W<sub>s</sub>s<sub>t-1</sub> + W<sub>z</sub>z + b<sub>s</sub>)",
               copy:
-                "The decoder state depends on the previous target token, the previous decoder state, and the source context.",
+                "The decoder reads the previous output token, its own previous state, and the source context to decide what should come next.",
             },
             {
               meta: "04 / predict token",
-              title: "Choose the next output",
-              equationHtml: "p(y<sub>t</sub>) = softmax(W<sub>o</sub>s<sub>t</sub> + b<sub>o</sub>)",
+              title: "Turn state into probabilities",
+              equationHtml:
+                "p(y<sub>t</sub> | y<sub>&lt;t</sub>, x) = softmax(W<sub>o</sub>s<sub>t</sub> + b<sub>o</sub>)",
               copy:
-                "A softmax turns the decoder state into probabilities over possible output tokens.",
+                "The model does not output a word directly; it produces a probability distribution and selects the most likely next token.",
             },
           ],
           note:
