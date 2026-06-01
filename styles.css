@@ -1085,6 +1085,12 @@ h4 {
   stroke-width: 1.8;
 }
 
+.seq-demo-gap-token rect {
+  fill: rgba(255, 255, 255, 0.76);
+  stroke: rgba(101, 112, 117, 0.38);
+  stroke-dasharray: 5 5;
+}
+
 .seq-demo-state text,
 .seq-state-cell text,
 .seq-demo-input text {
@@ -1239,14 +1245,31 @@ h4 {
 
 .seq-cell text,
 .context-node text,
-.token-label {
+.token-label,
+.seq-bar-label,
+.seq-helper-label,
+.context-caption {
   fill: var(--ink);
   font-size: 13px;
   font-weight: 700;
 }
 
-.token-label {
+.token-label,
+.seq-helper-label,
+.context-caption {
   fill: var(--muted);
+}
+
+.seq-bar-label {
+  fill: var(--accent-strong);
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.seq-helper-label,
+.context-caption {
+  font-size: 12px;
+  font-weight: 700;
 }
 
 .seq-section-label {
@@ -1262,6 +1285,15 @@ h4 {
 
 .seq2seq-svg .seq-section-label {
   font-size: 17px;
+}
+
+.seq2seq-svg .seq-bar-label {
+  font-size: 15px;
+}
+
+.seq2seq-svg .seq-helper-label,
+.seq2seq-svg .context-caption {
+  font-size: 14px;
 }
 
 .seq2seq-svg .seq-arrow {
@@ -1312,7 +1344,10 @@ h4 {
 .seq-cell.is-active rect,
 .context-node.is-active circle,
 .seq-gap-marker.is-active circle,
-.token-label.is-active {
+.token-label.is-active,
+.seq-bar-label.is-active,
+.seq-helper-label.is-active,
+.context-caption.is-active {
   filter: drop-shadow(0 6px 8px rgba(36, 106, 115, 0.14));
 }
 

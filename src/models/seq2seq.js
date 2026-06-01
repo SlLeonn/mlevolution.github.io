@@ -6,12 +6,13 @@
       title: "Seq2Seq",
       year: "2014",
       overview: {
-        what: "Seq2Seq maps one sequence into another, such as an input sentence into an output sentence.",
-        consists: "An encoder compresses x_1...x_T into context, but forcing everything through one vector can create a bottleneck.",
+        what: "Seq2Seq maps an input sequence into an output sequence, even when their lengths are different.",
+        consists:
+          "A recurrent encoder reads x_1...x_T into a context vector, then a recurrent decoder generates y_1...y_S one step at a time.",
       },
       panels: {
         architecture: {
-          summary: "The encoder reads first; the decoder generates after receiving context.",
+          summary: "The encoder builds source states h_t, context z bridges the model, and the decoder writes target states s_t.",
           diagram: {
             type: "seq2seq",
             source: ["x_1", "x_2", "...", "x_T"],
@@ -33,17 +34,17 @@
               {
                 label: "Encoder",
                 caption:
-                  "The encoder reuses the same recurrent cell from x_1 to x_T, updating h_t so later states carry more source context.",
+                  "The encoder applies the same recurrent cell to every source token. Each h_t summarizes the prefix seen so far, and h_T becomes the strongest summary of the full input.",
               },
               {
                 label: "Context",
                 caption:
-                  "The final encoder state becomes context z, a compact summary that initializes or conditions the decoder.",
+                  "Context z is the bridge from encoder to decoder. In the classic model it is usually h_T, so all source information must fit through one vector.",
               },
               {
                 label: "Decoder",
                 caption:
-                  "The decoder starts from <GO>, uses z, and predicts y_1 to y_S autoregressively, feeding previous outputs into later steps.",
+                  "The decoder is another recurrent system. It starts with <GO>, reads z, predicts y_t, then feeds the previous target token into the next step.",
               },
             ],
           },
@@ -53,43 +54,76 @@
           formula: "z = Encoder(x_1...x_T), y_t = Decoder(y_(t-1), z)",
           formulaMath:
             '<math display="block"><mi>z</mi><mo>=</mo><mi>Enc</mi><mo>(</mo><msub><mi>x</mi><mn>1</mn></msub><mo>,</mo><mo>...</mo><mo>,</mo><msub><mi>x</mi><mi>T</mi></msub><mo>)</mo><mo>,</mo><mspace width="0.6em"/><msub><mi>y</mi><mi>t</mi></msub><mo>=</mo><mi>Dec</mi><mo>(</mo><msub><mi>y</mi><mrow><mi>t</mi><mo>-</mo><mn>1</mn></mrow></msub><mo>,</mo><mi>z</mi><mo>)</mo></math>',
-          terms: ["z: context vector", "T source steps", "S generated steps"],
-          note: "The context bottleneck explains why attention becomes the next natural step.",
+          terms: ["h_t: encoder state", "z: context vector", "s_t: decoder state", "T source steps", "S target steps"],
+          intro:
+            "Seq2Seq separates a problem into reading and writing. The encoder first turns the source sequence into memory; the decoder then turns that memory into a new sequence.",
+          steps: [
+            {
+              meta: "01 / encode source",
+              title: "Read the input sequence",
+              equationHtml: "h<sub>t</sub> = EncCell(x<sub>t</sub>, h<sub>t-1</sub>)",
+              copy:
+                "The same encoder cell is reused across source positions, so h_t stores what the model knows after reading up to x_t.",
+            },
+            {
+              meta: "02 / bridge",
+              title: "Compress into context",
+              equationHtml: "z = h<sub>T</sub>",
+              copy:
+                "Classic Seq2Seq passes the final encoder state to the decoder as a fixed-size summary of the whole input.",
+            },
+            {
+              meta: "03 / decode target",
+              title: "Generate one step at a time",
+              equationHtml: "s<sub>t</sub> = DecCell(y<sub>t-1</sub>, s<sub>t-1</sub>, z)",
+              copy:
+                "The decoder state depends on the previous target token, the previous decoder state, and the source context.",
+            },
+            {
+              meta: "04 / predict token",
+              title: "Choose the next output",
+              equationHtml: "p(y<sub>t</sub>) = softmax(W<sub>o</sub>s<sub>t</sub> + b<sub>o</sub>)",
+              copy:
+                "A softmax turns the decoder state into probabilities over possible output tokens.",
+            },
+          ],
+          note:
+            "The main weakness is the fixed context bottleneck: long or detailed inputs can be hard to compress into one vector. Attention solves this by letting the decoder look back at all encoder states.",
         },
         demo: {
           label: "Encoder-decoder flow",
           type: "encoder-decoder",
           title: "Read a sequence, then write a sequence",
-          description: "The model turns an input timeline into an output timeline through context.",
+          description: "The interaction follows the three conceptual stages: read source, pass context, generate target.",
           states: [
             {
               label: "Encode",
               activePhase: 0,
               caption:
-                "Encoder steps read x_1, x_2, ..., x_T in order. The omitted dots mean repeated middle time steps, not an extra state.",
+                "Encoding is the reading phase: the model moves from x_1 to x_T, updating h_t at each source position with shared recurrent weights.",
             },
             {
               label: "Context",
               activePhase: 1,
               caption:
-                "Context z transfers the source summary to the decoder. In classic Seq2Seq this fixed vector is also the main bottleneck.",
+                "The context vector z transfers the source summary. It is a bridge, not another token, and in the classic version it can become a bottleneck.",
             },
             {
               label: "Decode",
               activePhase: 2,
               caption:
-                "Decoder steps generate y_1, y_2, ..., y_S while using z and the previously generated token as input.",
+                "Decoding is autoregressive: each prediction y_t depends on z and on the target history already produced.",
             },
           ],
         },
         controls: {
           label: "Core pieces",
-          items: ["encoder", "context z", "decoder"],
+          items: ["source encoder", "context z", "decoder state", "autoregressive output"],
         },
         metrics: {
           label: "Evolution link",
           title: "What to remember",
-          points: ["Strength: sequence-to-sequence mapping", "Limitation: fixed context bottleneck", "Next step: attention"],
+          points: ["Strength: variable-length sequence mapping", "Limitation: fixed context bottleneck", "Next step: attention"],
         },
       },
     })

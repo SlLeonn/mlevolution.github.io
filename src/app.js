@@ -894,7 +894,7 @@
     const shell = createElement("div", "seq2seq-architecture");
     const svg = createSvgElement("svg", {
       class: "seq2seq-svg",
-      viewBox: "0 0 1040 430",
+      viewBox: "0 0 1040 450",
       role: "img",
       "aria-label": panel.summary,
     });
@@ -921,13 +921,21 @@
     defs.append(marker);
     svg.append(
       defs,
-      createSvgElement("text", { class: "flow-label seq-section-label", x: 280, y: 42, "text-anchor": "middle" }),
-      createSvgElement("text", { class: "flow-label seq-section-label", x: 808, y: 42, "text-anchor": "middle" }),
+      createSvgElement("text", { class: "flow-label seq-section-label", x: 280, y: 42, "text-anchor": "middle", "data-phase": 0 }),
+      createSvgElement("text", { class: "flow-label seq-section-label", x: 808, y: 42, "text-anchor": "middle", "data-phase": 2 }),
       createSvgElement("rect", { class: "embedding-bar", x: 60, y: 338, width: 440, height: 30, rx: 8, "data-phase": 0 }),
-      createSvgElement("rect", { class: "embedding-bar", x: 590, y: 78, width: 430, height: 30, rx: 8, "data-phase": 2 })
+      createSvgElement("rect", { class: "embedding-bar", x: 590, y: 78, width: 430, height: 30, rx: 8, "data-phase": 2 }),
+      createSvgElement("text", { class: "seq-bar-label", x: 280, y: 358, "text-anchor": "middle", "data-phase": 0 }),
+      createSvgElement("text", { class: "seq-bar-label", x: 805, y: 98, "text-anchor": "middle", "data-phase": 2 }),
+      createSvgElement("text", { class: "seq-helper-label", x: 280, y: 426, "text-anchor": "middle", "data-phase": 0 }),
+      createSvgElement("text", { class: "seq-helper-label", x: 805, y: 356, "text-anchor": "middle", "data-phase": 2 })
     );
     svg.querySelectorAll(".seq-section-label")[0].textContent = "ENCODER";
     svg.querySelectorAll(".seq-section-label")[1].textContent = "DECODER";
+    svg.querySelectorAll(".seq-bar-label")[0].textContent = "source embeddings";
+    svg.querySelectorAll(".seq-bar-label")[1].textContent = "output distribution";
+    svg.querySelectorAll(".seq-helper-label")[0].textContent = "source positions";
+    svg.querySelectorAll(".seq-helper-label")[1].textContent = "previous target input";
 
     diagram.sourceSteps.forEach((step, index) => {
       const x = encoderX[index];
@@ -1013,9 +1021,18 @@
       createSvgElement("text", { y: 5, "text-anchor": "middle" })
     );
     setSvgMathText(context.querySelector("text"), diagram.bridge);
+    const contextLabel = createSvgElement("text", {
+      class: "context-caption",
+      x: contextX,
+      y: cellY + 58,
+      "text-anchor": "middle",
+      "data-phase": 1,
+    });
+    contextLabel.textContent = "fixed context";
     svg.append(
       createSvgElement("line", { class: "seq-arrow", x1: finalEncoderX + cellOffset, y1: cellY, x2: contextX - contextRadius, y2: cellY, "data-phase": 1 }),
       context,
+      contextLabel,
       createSvgElement("line", { class: "seq-arrow", x1: contextX + contextRadius, y1: cellY, x2: firstDecoderX - cellOffset, y2: cellY, "data-phase": 1 })
     );
 
@@ -1831,14 +1848,14 @@
   function renderEncoderDecoderDemo(panel, architecture) {
     const { shell, stage, buttons, caption } = createDemoShell(panel);
     const diagram = normalizeSeq2SeqDiagram(architecture.diagram);
-    const sourceX = spreadPositions(diagram.sourceSteps.length, 72, 258);
-    const targetX = spreadPositions(diagram.targetSteps.length, 438, 626);
-    const tokenY = 78;
-    const contextX = 350;
-    const contextY = 116;
+    const sourceX = spreadPositions(diagram.sourceSteps.length, 78, 286);
+    const targetX = spreadPositions(diagram.targetSteps.length, 462, 654);
+    const tokenY = 88;
+    const contextX = 372;
+    const contextY = 130;
     const svg = createSvgElement("svg", {
       class: "seq2seq-demo-svg",
-      viewBox: "0 0 700 230",
+      viewBox: "0 0 720 260",
       role: "img",
       "aria-label": panel.title,
     });
@@ -1861,22 +1878,22 @@
     drawDemoSequenceLinks(diagram.targetSteps, targetX, tokenY, 2, "target");
 
     svg.append(
-      createSvgElement("text", { class: "flow-label seq-section-label", x: 166, y: 34, "text-anchor": "middle", "data-phase": 0 }),
-      createSvgElement("text", { class: "flow-label seq-section-label", x: 350, y: 34, "text-anchor": "middle", "data-phase": 1 }),
-      createSvgElement("text", { class: "flow-label seq-section-label", x: 532, y: 34, "text-anchor": "middle", "data-phase": 2 }),
+      createSvgElement("text", { class: "flow-label seq-section-label", x: 182, y: 34, "text-anchor": "middle", "data-phase": 0 }),
+      createSvgElement("text", { class: "flow-label seq-section-label", x: contextX, y: 34, "text-anchor": "middle", "data-phase": 1 }),
+      createSvgElement("text", { class: "flow-label seq-section-label", x: 558, y: 34, "text-anchor": "middle", "data-phase": 2 }),
       createSvgElement("path", {
         class: "encoder-flow",
-        d: "M 78 134 C 154 174, 252 164, 316 118",
+        d: "M 84 150 C 150 190, 248 184, 320 132",
         "data-phase": 0,
       }),
       createSvgElement("path", {
         class: "context-pulse",
-        d: "M 318 116 C 336 98, 364 98, 382 116",
+        d: "M 328 130 C 346 108, 398 108, 416 130",
         "data-phase": 1,
       }),
       createSvgElement("path", {
         class: "decoder-flow",
-        d: "M 384 118 C 452 164, 552 174, 622 134",
+        d: "M 420 132 C 486 184, 584 190, 650 150",
         "data-phase": 2,
       }),
       createSvgElement("circle", { class: "context-orbit", cx: contextX, cy: contextY, r: 34, "data-phase": 1 })
@@ -1887,7 +1904,7 @@
 
     diagram.sourceSteps.forEach((step, index) => {
       if (step.omitted) {
-        svg.append(createSeqGapMarker("seq-demo-gap", sourceX[index], tokenY, 0));
+        svg.append(createSeqDemoToken("...", sourceX[index], tokenY, 0, true));
         return;
       }
 
@@ -1895,7 +1912,7 @@
     });
     diagram.targetSteps.forEach((step, index) => {
       if (step.omitted) {
-        svg.append(createSeqGapMarker("seq-demo-gap", targetX[index], tokenY, 2));
+        svg.append(createSeqDemoToken("...", targetX[index], tokenY, 2, true));
         return;
       }
 
@@ -1910,13 +1927,37 @@
       "data-phase": 1,
     });
     context.textContent = diagram.bridge;
-    svg.append(context);
+    const sourceHint = createSvgElement("text", {
+      class: "seq-helper-label",
+      x: 182,
+      y: 224,
+      "text-anchor": "middle",
+      "data-phase": 0,
+    });
+    const targetHint = createSvgElement("text", {
+      class: "seq-helper-label",
+      x: 558,
+      y: 224,
+      "text-anchor": "middle",
+      "data-phase": 2,
+    });
+    const contextHint = createSvgElement("text", {
+      class: "seq-helper-label",
+      x: contextX,
+      y: 178,
+      "text-anchor": "middle",
+      "data-phase": 1,
+    });
+    sourceHint.textContent = "encode all source tokens";
+    targetHint.textContent = "generate target tokens";
+    contextHint.textContent = "fixed source summary";
+    svg.append(context, sourceHint, targetHint, contextHint);
     stage.append(svg);
 
-    function createSeqDemoToken(label, x, y, phaseIndex) {
+    function createSeqDemoToken(label, x, y, phaseIndex, omitted = false) {
       const width = Math.max(48, label.length * 8 + 22);
       const group = createSvgElement("g", {
-        class: "seq-demo-input",
+        class: `seq-demo-input${omitted ? " seq-demo-gap-token" : ""}`,
         transform: `translate(${x} ${y})`,
         "data-phase": phaseIndex,
       });
