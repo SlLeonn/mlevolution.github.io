@@ -48,7 +48,34 @@
           formulaMath:
             '<math display="block"><msup><mi>a</mi><mrow><mo>(</mo><mi>&ell;</mi><mo>)</mo></mrow></msup><mo>=</mo><mi>&phi;</mi><mo>(</mo><msup><mi>W</mi><mrow><mo>(</mo><mi>&ell;</mi><mo>)</mo></mrow></msup><msup><mi>a</mi><mrow><mo>(</mo><mi>&ell;</mi><mo>-</mo><mn>1</mn><mo>)</mo></mrow></msup><mo>+</mo><msup><mi>b</mi><mrow><mo>(</mo><mi>&ell;</mi><mo>)</mo></mrow></msup><mo>)</mo></math>',
           terms: ["L layers", "m neurons per hidden layer", "phi: nonlinear activation", "backprop learns all weights"],
-          note: "The key leap is nonlinearity: layers can bend and combine boundaries.",
+          intro: "An MLP repeats the same idea across layers: mix the previous representation, bend it with a nonlinear activation, then learn the weights from error.",
+          steps: [
+            {
+              meta: "01 / input activations",
+              title: "Start from the data",
+              equationHtml: "a<sup>(0)</sup> = x",
+              copy: "The first activation is simply the input vector. Each coordinate is one feature of the example.",
+            },
+            {
+              meta: "02 / linear mix",
+              title: "Combine previous signals",
+              equationHtml: "z<sup>(&ell;)</sup> = W<sup>(&ell;)</sup>a<sup>(&ell;-1)</sup> + b<sup>(&ell;)</sup>",
+              copy: "Every neuron forms a weighted sum of the previous layer, so each layer learns many simple cuts.",
+            },
+            {
+              meta: "03 / nonlinear activation",
+              title: "Bend the representation",
+              equationHtml: "a<sup>(&ell;)</sup> = &phi;(z<sup>(&ell;)</sup>)",
+              copy: "The activation is the crucial step: without it, many layers collapse into one linear model.",
+            },
+            {
+              meta: "04 / learning",
+              title: "Adjust from the error",
+              equationHtml: "W &larr; W - &eta; &nabla;<sub>W</sub> L",
+              copy: "Backpropagation sends the output error backward so all layers can improve together.",
+            },
+          ],
+          note: "The key leap is nonlinearity: hidden layers can combine simple cuts into flexible decision regions.",
         },
         demo: {
           label: "Nonlinear boundary",

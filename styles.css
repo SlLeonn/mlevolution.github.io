@@ -414,8 +414,8 @@ h4 {
   background-size: 28px 28px;
 }
 
-.placeholder-canvas p,
-.metrics-placeholder p {
+.placeholder-canvas > p,
+.metrics-placeholder > p {
   position: relative;
   margin: 0;
   padding: 10px 12px;
@@ -965,7 +965,21 @@ h4 {
 
 .gate-figure-stack {
   display: grid;
+  grid-template-columns: 1fr;
+  align-items: start;
+  gap: 14px;
+  max-width: 100%;
+  overflow-x: auto;
+  padding-bottom: 4px;
+}
+
+.gate-cell-block {
+  display: grid;
   gap: 10px;
+}
+
+.gate-local-controls {
+  margin-top: 2px;
 }
 
 .formula math {
@@ -1260,7 +1274,23 @@ h4 {
   margin: 0 auto;
 }
 
-.gate-cell-svg,
+.gate-cell-svg {
+  min-width: 0;
+  border: 1px solid rgba(216, 214, 205, 0.78);
+  border-radius: var(--radius);
+  background: rgba(255, 255, 255, 0.58);
+}
+
+.lstm-cell-svg {
+  max-width: 1120px;
+  margin: 0 auto;
+}
+
+.gru-cell-svg {
+  max-width: 900px;
+  margin: 0 auto;
+}
+
 .seq2seq-svg,
 .seq2seq-demo-svg {
   min-width: 720px;
@@ -1321,6 +1351,12 @@ h4 {
   fill: #ffd879;
   stroke: rgba(194, 125, 67, 0.72);
   stroke-width: 1.5;
+}
+
+.gate-zone-badge rect {
+  fill: #fff;
+  stroke: rgba(216, 214, 205, 0.9);
+  stroke-width: 1.1;
 }
 
 .gate-state,
@@ -1419,6 +1455,7 @@ h4 {
 .candidate-node.is-active,
 .candidate-node.is-active rect,
 .gate-chip.is-active rect,
+.gate-zone-badge.is-active rect,
 .gate-symbol.is-active,
 .gate-zone-label.is-active,
 .gate-equation.is-active {
@@ -1429,7 +1466,8 @@ h4 {
 .gate-output-node.is-active circle,
 .candidate-node.is-active,
 .candidate-node.is-active rect,
-.gate-chip.is-active rect {
+.gate-chip.is-active rect,
+.gate-zone-badge.is-active rect {
   stroke: var(--warm);
   stroke-width: 2.6;
 }
@@ -1449,6 +1487,7 @@ h4 {
 .gate-operator text,
 .gate-node text,
 .gate-chip text,
+.gate-zone-badge text,
 .gate-state text,
 .gate-input-node text,
 .candidate-node text,
@@ -1627,29 +1666,29 @@ h4 {
   padding: 48px 18px 18px;
 }
 
-.metrics-placeholder span {
+.metrics-placeholder > span {
   display: block;
   border-radius: 4px 4px 0 0;
   background: rgba(36, 106, 115, 0.3);
 }
 
-.metrics-placeholder span:nth-child(1) {
+.metrics-placeholder > span:nth-child(1) {
   height: 32%;
 }
 
-.metrics-placeholder span:nth-child(2) {
+.metrics-placeholder > span:nth-child(2) {
   height: 58%;
 }
 
-.metrics-placeholder span:nth-child(3) {
+.metrics-placeholder > span:nth-child(3) {
   height: 44%;
 }
 
-.metrics-placeholder span:nth-child(4) {
+.metrics-placeholder > span:nth-child(4) {
   height: 72%;
 }
 
-.metrics-placeholder p {
+.metrics-placeholder > p {
   position: absolute;
   top: 50%;
   left: 50%;
@@ -1816,7 +1855,7 @@ h4 {
     flex-direction: column;
   }
 
-  .metrics-placeholder p {
+  .metrics-placeholder > p {
     max-width: calc(100% - 24px);
     text-align: center;
     white-space: normal;
@@ -1828,6 +1867,14 @@ h4 {
 
   .gate-list {
     grid-template-columns: 1fr;
+  }
+
+  .gate-figure-stack {
+    grid-template-columns: 1fr;
+  }
+
+  .gate-cell-svg {
+    min-width: 540px;
   }
 
   .demo-stage {

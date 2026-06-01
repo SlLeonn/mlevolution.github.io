@@ -45,7 +45,34 @@
           formulaMath:
             '<math display="block"><msub><mi>m</mi><mi>t</mi></msub><mo>=</mo><msub><mi>k</mi><mi>t</mi></msub><mo>&odot;</mo><msub><mi>m</mi><mrow><mi>t</mi><mo>-</mo><mn>1</mn></mrow></msub><mo>+</mo><msub><mi>u</mi><mi>t</mi></msub><mo>&odot;</mo><msub><mover><mi>m</mi><mo>~</mo></mover><mi>t</mi></msub></math>',
           terms: ["k_t: keep gate", "u_t: update gate", "m_t: memory state"],
-          note: "The exact LSTM and GRU equations differ, but both use gates to control memory.",
+          intro: "LSTM and GRU keep the recurrent idea from RNNs, but they learn gates that decide what to preserve, what to write, and what to expose.",
+          steps: [
+            {
+              meta: "01 / keep old memory",
+              title: "Decide what survives",
+              equationHtml: "k<sub>t</sub> &odot; m<sub>t-1</sub>",
+              copy: "A keep or forget gate protects useful past information instead of overwriting the whole state at every step.",
+            },
+            {
+              meta: "02 / propose new content",
+              title: "Build a candidate update",
+              equationHtml: "m&#771;<sub>t</sub> = candidate(x<sub>t</sub>, h<sub>t-1</sub>)",
+              copy: "The cell computes new evidence from the current input and the previous hidden state.",
+            },
+            {
+              meta: "03 / write selectively",
+              title: "Blend old and new information",
+              equationHtml: "m<sub>t</sub> = k<sub>t</sub> &odot; m<sub>t-1</sub> + u<sub>t</sub> &odot; m&#771;<sub>t</sub>",
+              copy: "The update gate controls how much candidate information enters the memory.",
+            },
+            {
+              meta: "04 / expose state",
+              title: "Return a useful hidden state",
+              equationHtml: "h<sub>t</sub> = read(m<sub>t</sub>)",
+              copy: "LSTM reads from a separate cell state c_t; GRU merges memory directly into h_t for a simpler unit.",
+            },
+          ],
+          note: "LSTM has separate cell memory and three main gates; GRU is simpler, usually with reset and update gates. Both reduce the forgetting problem of plain RNNs.",
         },
         demo: {
           label: "Gate flow",

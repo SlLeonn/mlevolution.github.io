@@ -57,7 +57,34 @@
           formulaMath:
             '<math display="block"><msub><mi>h</mi><mi>t</mi></msub><mo>=</mo><mi>&phi;</mi><mo>(</mo><msub><mi>W</mi><mi>x</mi></msub><msub><mi>x</mi><mi>t</mi></msub><mo>+</mo><msub><mi>W</mi><mi>h</mi></msub><msub><mi>h</mi><mrow><mi>t</mi><mo>-</mo><mn>1</mn></mrow></msub><mo>+</mo><mi>b</mi><mo>)</mo></math>',
           terms: ["x_t: input at step t", "h_t: memory state", "shared weights across T steps"],
-          note: "RNNs introduced the idea that a network can reuse itself over a sequence.",
+          intro: "A simple RNN reuses the same cell at every time step. The new hidden state is a compressed summary of the current input and the previous memory.",
+          steps: [
+            {
+              meta: "01 / current input",
+              title: "Read one step of the sequence",
+              equationHtml: "x<sub>t</sub>",
+              copy: "The model receives only the element at position t, such as one word, one sound frame, or one sensor value.",
+            },
+            {
+              meta: "02 / previous memory",
+              title: "Bring context forward",
+              equationHtml: "h<sub>t-1</sub>",
+              copy: "The hidden state carries a compact summary of what the network has already processed.",
+            },
+            {
+              meta: "03 / shared update",
+              title: "Reuse the same recurrent rule",
+              equationHtml: "h<sub>t</sub> = &phi;(W<sub>x</sub>x<sub>t</sub> + W<sub>h</sub>h<sub>t-1</sub> + b)",
+              copy: "The same weights are used at every step, so the model can process sequences of different lengths.",
+            },
+            {
+              meta: "04 / limitation",
+              title: "Repeated compression can forget",
+              equationHtml: "h<sub>T</sub> = RNN(x<sub>1</sub>, ..., x<sub>T</sub>)",
+              copy: "Long sequences force old information through many updates, which motivates gated units such as LSTM and GRU.",
+            },
+          ],
+          note: "RNNs introduced the idea that a network can reuse itself over a sequence; LSTM and GRU keep that idea but add gates for longer memory.",
         },
         demo: {
           label: "Sequence memory",

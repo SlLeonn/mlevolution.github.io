@@ -585,12 +585,37 @@
   }
 
   function renderGateArchitecture(panel) {
-    const diagram = panel.diagram;
-    const gateItems = normalizeGates(diagram);
+    const lstmGateItems = [
+      {
+        label: "Forget",
+        description:
+          "The forget gate f_t scales the old cell memory c_(t-1). Values near 1 preserve context; values near 0 remove it.",
+      },
+      {
+        label: "Input",
+        description:
+          "The input gate i_t controls how much of the candidate memory c~_t is written into the cell state.",
+      },
+      {
+        label: "Output",
+        description:
+          "The output gate o_t decides how much of tanh(c_t) becomes the visible hidden state h_t.",
+      },
+    ];
+    const gruGateItems = [
+      {
+        label: "Reset",
+        description:
+          "The reset gate r_t decides how much of h_(t-1) is allowed into the candidate state h~_t. Low reset values make the GRU focus on the current input.",
+      },
+      {
+        label: "Update",
+        description:
+          "The update gate z_t blends old memory with the candidate state. It controls whether the GRU preserves h_(t-1) or writes h~_t into h_t.",
+      },
+    ];
     const shell = createElement("div", "gate-architecture");
     const figure = createElement("div", "gate-figure-stack");
-    const gates = createElement("div", "diagram-controls");
-    const caption = createElement("p", "diagram-caption", panel.summary);
 
     function createArrowDefs(id) {
       const defs = createSvgElement("defs");
@@ -659,130 +684,209 @@
       return group;
     }
 
+    function createGateControlGroup(items, activate) {
+      const controls = createElement("div", "diagram-controls gate-local-controls");
+      const caption = createElement("p", "diagram-caption", items[0]?.description || panel.summary);
+
+      items.forEach((gate, index) => {
+        const button = createElement("button", "diagram-button", gate.label);
+        button.type = "button";
+        button.addEventListener("click", () => activate(index, controls, caption));
+        controls.append(button);
+      });
+
+      return { controls, caption };
+    }
+
     const lstmSvg = createSvgElement("svg", {
-      class: "gate-svg gate-cell-svg",
-      viewBox: "50 30 610 260",
+      class: "gate-svg gate-cell-svg lstm-cell-svg",
+      viewBox: "0 0 900 460",
       role: "img",
       "aria-label": "LSTM cell architecture",
     });
     const gruSvg = createSvgElement("svg", {
-      class: "gate-svg gate-cell-svg",
-      viewBox: "50 30 610 245",
+      class: "gate-svg gate-cell-svg gru-cell-svg",
+      viewBox: "0 0 900 410",
       role: "img",
       "aria-label": "GRU cell architecture",
     });
 
-    lstmSvg.append(createArrowDefs("arrow-gate-lstm"), createSvgElement("rect", { class: "gate-subcell", x: 18, y: 18, width: 664, height: 274, rx: 12 }));
-    gruSvg.append(createArrowDefs("arrow-gate-gru"), createSvgElement("rect", { class: "gate-subcell", x: 18, y: 18, width: 664, height: 238, rx: 12 }));
+    lstmSvg.append(createArrowDefs("arrow-gate-lstm"), createSvgElement("rect", { class: "gate-subcell", x: 18, y: 18, width: 864, height: 424, rx: 12 }));
+    gruSvg.append(createArrowDefs("arrow-gate-gru"), createSvgElement("rect", { class: "gate-subcell", x: 18, y: 18, width: 864, height: 374, rx: 12 }));
 
-    addText(lstmSvg, "LSTM CELL", 122, 50, "gate-title");
-    addText(lstmSvg, "c_t = f_t * c_(t-1) + i_t * c~_t", 350, 50, "gate-equation");
-    [
-      { x: 150, y: 72, w: 126, h: 172, gate: 0, label: "Forget gate" },
-      { x: 292, y: 72, w: 164, h: 172, gate: 1, label: "Input gate" },
-      { x: 482, y: 72, w: 154, h: 172, gate: 2, label: "Output gate" },
-    ].forEach((box) => {
-      lstmSvg.append(createSvgElement("rect", { class: "gate-dashed-zone", x: box.x, y: box.y, width: box.w, height: box.h, rx: 10, "data-gate": box.gate }));
-      addText(lstmSvg, box.label, box.x + box.w / 2, box.y + box.h + 22, "gate-zone-label", { "data-gate": box.gate });
+    addText(lstmSvg, "LSTM CELL", 98, 48, "gate-title");
+    addText(lstmSvg, "c_t = f_t * c_(t-1) + i_t * c~_t", 480, 48, "gate-equation");
+    const lstmZones = [
+      { x: 145, y: 120, w: 160, h: 188, gate: 0, label: "Forget gate" },
+      { x: 340, y: 120, w: 250, h: 188, gate: 1, label: "Input gate" },
+      { x: 625, y: 135, w: 170, h: 173, gate: 2, label: "Output gate" },
+    ];
+    lstmZones.forEach((box) => {
+      lstmSvg.append(
+        createSvgElement("rect", {
+          class: "gate-dashed-zone",
+          x: box.x,
+          y: box.y,
+          width: box.w,
+          height: box.h,
+          rx: 10,
+          "data-cell": "lstm",
+          "data-gate": box.gate,
+        })
+      );
     });
-    addText(lstmSvg, "c_(t-1)", 104, 104, "gate-state-label");
-    addText(lstmSvg, "c_t", 622, 104, "gate-state-label");
-    addText(lstmSvg, "h_(t-1)", 104, 218, "gate-state-label");
-    addText(lstmSvg, "x_t", 132, 242, "gate-state-label");
-    addText(lstmSvg, "h_t", 622, 218, "gate-state-label");
-    addRectLabel(lstmSvg, "gate-chip", 198, 188, 66, 34, "sig", { "data-gate": 0 });
-    addRectLabel(lstmSvg, "gate-chip", 322, 188, 66, 34, "sig", { "data-gate": 1 });
-    addRectLabel(lstmSvg, "gate-chip gate-chip-tanh", 394, 188, 78, 34, "tanh", { "data-gate": 1 });
-    addRectLabel(lstmSvg, "gate-chip", 514, 188, 66, 34, "sig", { "data-gate": 2 });
-    addRectLabel(lstmSvg, "gate-chip gate-chip-tanh", 514, 118, 78, 34, "tanh", { "data-gate": 2 });
-    addText(lstmSvg, "f_t", 198, 160, "gate-symbol", { "data-gate": 0 });
-    addText(lstmSvg, "i_t", 322, 160, "gate-symbol", { "data-gate": 1 });
-    addText(lstmSvg, "c~_t", 394, 160, "gate-symbol", { "data-gate": 1 });
-    addText(lstmSvg, "o_t", 514, 160, "gate-symbol", { "data-gate": 2 });
-    addCircleLabel(lstmSvg, "gate-operator", 198, 104, 16, "x", { "data-gate": 0 });
-    addCircleLabel(lstmSvg, "gate-operator", 394, 104, 16, "+", { "data-gate": 1 });
-    addCircleLabel(lstmSvg, "gate-operator", 358, 140, 16, "x", { "data-gate": 1 });
-    addCircleLabel(lstmSvg, "gate-operator", 514, 158, 16, "x", { "data-gate": 2 });
+    addText(lstmSvg, "c_(t-1)", 80, 92, "gate-state-label");
+    addText(lstmSvg, "c_t", 828, 92, "gate-state-label");
+    addText(lstmSvg, "[x_t, h_(t-1)]", 116, 408, "gate-state-label");
+    addText(lstmSvg, "h_t", 826, 226, "gate-state-label");
+    addRectLabel(lstmSvg, "gate-chip", 225, 250, 76, 38, "sig", { "data-cell": "lstm", "data-gate": 0 });
+    addRectLabel(lstmSvg, "gate-chip", 420, 250, 76, 38, "sig", { "data-cell": "lstm", "data-gate": 1 });
+    addRectLabel(lstmSvg, "gate-chip gate-chip-tanh", 530, 250, 86, 38, "tanh", { "data-cell": "lstm", "data-gate": 1 });
+    addRectLabel(lstmSvg, "gate-chip", 710, 280, 76, 38, "sig", { "data-cell": "lstm", "data-gate": 2 });
+    addRectLabel(lstmSvg, "gate-chip gate-chip-tanh", 650, 166, 86, 38, "tanh", { "data-cell": "lstm", "data-gate": 2 });
+    addText(lstmSvg, "f_t", 225, 214, "gate-symbol", { "data-cell": "lstm", "data-gate": 0 });
+    addText(lstmSvg, "i_t", 420, 214, "gate-symbol", { "data-cell": "lstm", "data-gate": 1 });
+    addText(lstmSvg, "c~_t", 530, 214, "gate-symbol", { "data-cell": "lstm", "data-gate": 1 });
+    addText(lstmSvg, "o_t", 666, 250, "gate-symbol", { "data-cell": "lstm", "data-gate": 2 });
+    addCircleLabel(lstmSvg, "gate-operator", 225, 92, 18, "x", { "data-cell": "lstm", "data-gate": 0 });
+    addCircleLabel(lstmSvg, "gate-operator", 500, 92, 18, "+", { "data-cell": "lstm", "data-gate": 1 });
+    addCircleLabel(lstmSvg, "gate-operator", 475, 174, 18, "x", { "data-cell": "lstm", "data-gate": 1 });
+    addCircleLabel(lstmSvg, "gate-operator", 710, 222, 18, "x", { "data-cell": "lstm", "data-gate": 2 });
     [
-      { x1: 130, y1: 104, x2: 182, y2: 104, gate: 0, className: "gate-memory-path gate-arrow-lstm" },
-      { x1: 214, y1: 104, x2: 378, y2: 104, gate: 0, className: "gate-memory-path gate-arrow-lstm" },
-      { x1: 410, y1: 104, x2: 622, y2: 104, gate: 1, className: "gate-memory-path gate-arrow-lstm" },
-      { x1: 198, y1: 171, x2: 198, y2: 120, gate: 0, className: "gate-signal-path gate-arrow-lstm" },
-      { x1: 322, y1: 171, x2: 346, y2: 146, gate: 1, className: "gate-signal-path gate-arrow-lstm" },
-      { x1: 394, y1: 171, x2: 370, y2: 146, gate: 1, className: "gate-signal-path gate-arrow-lstm" },
-      { x1: 358, y1: 124, x2: 382, y2: 112, gate: 1, className: "gate-signal-path gate-arrow-lstm" },
-      { x1: 476, y1: 104, x2: 514, y2: 132, gate: 2, className: "gate-signal-path gate-arrow-lstm" },
-      { x1: 514, y1: 134, x2: 514, y2: 142, gate: 2, className: "gate-signal-path gate-arrow-lstm" },
-      { x1: 514, y1: 174, x2: 600, y2: 218, gate: 2, className: "gate-output-path gate-arrow-lstm" },
-      { x1: 132, y1: 228, x2: 198, y2: 207, gate: 0, className: "gate-input-path gate-arrow-lstm" },
-      { x1: 132, y1: 228, x2: 322, y2: 207, gate: 1, className: "gate-input-path gate-arrow-lstm" },
-      { x1: 132, y1: 228, x2: 394, y2: 207, gate: 1, className: "gate-input-path gate-arrow-lstm" },
-      { x1: 132, y1: 228, x2: 514, y2: 207, gate: 2, className: "gate-input-path gate-arrow-lstm" },
-    ].forEach((path) => addArrow(lstmSvg, path.className, { x1: path.x1, y1: path.y1, x2: path.x2, y2: path.y2, "data-gate": path.gate }));
-    addText(lstmSvg, "h_t = o_t * tanh(c_t)", 552, 276, "gate-equation", { "data-gate": 2 });
-
-    addText(gruSvg, "GRU CELL", 102, 48, "gate-title");
-    addText(gruSvg, "h_t = (1 - z_t) * h_(t-1) + z_t * h~_t", 385, 48, "gate-equation");
-    [
-      { x: 150, y: 88, w: 148, h: 126, gate: 1, label: "Reset gate" },
-      { x: 360, y: 88, w: 176, h: 126, gate: 1, label: "Update gate" },
-    ].forEach((box) => {
-      gruSvg.append(createSvgElement("rect", { class: "gate-dashed-zone", x: box.x, y: box.y, width: box.w, height: box.h, rx: 10, "data-gate": box.gate }));
-      addText(gruSvg, box.label, box.x + box.w / 2, box.y + box.h + 22, "gate-zone-label", { "data-gate": box.gate });
+      { x1: 112, y1: 92, x2: 204, y2: 92, gate: 0, className: "gate-memory-path gate-arrow-lstm" },
+      { x1: 246, y1: 92, x2: 478, y2: 92, gate: 0, className: "gate-memory-path gate-arrow-lstm" },
+      { x1: 522, y1: 92, x2: 802, y2: 92, gate: 1, className: "gate-memory-path gate-arrow-lstm" },
+      { x1: 225, y1: 231, x2: 225, y2: 112, gate: 0, className: "gate-signal-path gate-arrow-lstm" },
+      { x1: 420, y1: 231, x2: 463, y2: 190, gate: 1, className: "gate-signal-path gate-arrow-lstm" },
+      { x1: 530, y1: 231, x2: 488, y2: 190, gate: 1, className: "gate-signal-path gate-arrow-lstm" },
+      { x1: 493, y1: 158, x2: 500, y2: 112, gate: 1, className: "gate-signal-path gate-arrow-lstm" },
+      { x1: 650, y1: 92, x2: 650, y2: 145, gate: 2, className: "gate-signal-path gate-arrow-lstm" },
+      { x1: 650, y1: 185, x2: 696, y2: 214, gate: 2, className: "gate-signal-path gate-arrow-lstm" },
+      { x1: 710, y1: 261, x2: 710, y2: 246, gate: 2, className: "gate-signal-path gate-arrow-lstm" },
+      { x1: 728, y1: 222, x2: 802, y2: 222, gate: 2, className: "gate-output-path gate-arrow-lstm" },
+      { x1: 148, y1: 362, x2: 760, y2: 362, gate: 1, className: "gate-input-path gate-arrow-lstm gate-input-bus" },
+      { x1: 225, y1: 362, x2: 225, y2: 270, gate: 0, className: "gate-input-path gate-arrow-lstm" },
+      { x1: 420, y1: 362, x2: 420, y2: 270, gate: 1, className: "gate-input-path gate-arrow-lstm" },
+      { x1: 530, y1: 362, x2: 530, y2: 270, gate: 1, className: "gate-input-path gate-arrow-lstm" },
+      { x1: 710, y1: 362, x2: 710, y2: 299, gate: 2, className: "gate-input-path gate-arrow-lstm" },
+    ].forEach((path) =>
+      addArrow(lstmSvg, path.className, {
+        x1: path.x1,
+        y1: path.y1,
+        x2: path.x2,
+        y2: path.y2,
+        "data-cell": "lstm",
+        "data-gate": path.gate,
+      })
+    );
+    addText(lstmSvg, "tanh(c_t)", 592, 128, "gate-symbol", { "data-cell": "lstm", "data-gate": 2 });
+    lstmZones.forEach((box) => {
+      addRectLabel(lstmSvg, "gate-zone-badge", box.x + box.w / 2, box.y + box.h + 24, 120, 28, box.label, {
+        "data-cell": "lstm",
+        "data-gate": box.gate,
+      });
     });
-    addText(gruSvg, "h_(t-1)", 104, 112, "gate-state-label");
-    addText(gruSvg, "x_t", 122, 238, "gate-state-label");
-    addText(gruSvg, "h_t", 620, 112, "gate-state-label");
-    addRectLabel(gruSvg, "gate-chip", 210, 184, 66, 34, "sig", { "data-gate": 1 });
-    addRectLabel(gruSvg, "gate-chip", 420, 184, 66, 34, "sig", { "data-gate": 1 });
-    addRectLabel(gruSvg, "gate-chip gate-chip-tanh", 324, 112, 78, 34, "tanh", { "data-gate": 1 });
-    addRectLabel(gruSvg, "gate-chip", 472, 78, 70, 30, "1-z_t", { "data-gate": 0 });
-    addText(gruSvg, "r_t", 210, 158, "gate-symbol", { "data-gate": 1 });
-    addText(gruSvg, "z_t", 420, 158, "gate-symbol", { "data-gate": 1 });
-    addText(gruSvg, "h~_t", 324, 84, "gate-symbol", { "data-gate": 1 });
-    addCircleLabel(gruSvg, "gate-operator", 250, 112, 15, "x", { "data-gate": 1 });
-    addCircleLabel(gruSvg, "gate-operator", 472, 112, 15, "x", { "data-gate": 0 });
-    addCircleLabel(gruSvg, "gate-operator", 520, 112, 15, "x", { "data-gate": 1 });
-    addCircleLabel(gruSvg, "gate-operator", 570, 112, 15, "+", { "data-gate": 1 });
-    [
-      { x1: 130, y1: 112, x2: 235, y2: 112, gate: 1, className: "gate-memory-path gate-arrow-gru" },
-      { x1: 130, y1: 112, x2: 457, y2: 112, gate: 0, className: "gate-memory-path gate-arrow-gru gate-muted-path" },
-      { x1: 487, y1: 112, x2: 555, y2: 112, gate: 0, className: "gate-signal-path gate-arrow-gru" },
-      { x1: 265, y1: 112, x2: 304, y2: 112, gate: 1, className: "gate-signal-path gate-arrow-gru" },
-      { x1: 364, y1: 112, x2: 505, y2: 112, gate: 1, className: "gate-signal-path gate-arrow-gru" },
-      { x1: 535, y1: 112, x2: 555, y2: 112, gate: 1, className: "gate-signal-path gate-arrow-gru" },
-      { x1: 585, y1: 112, x2: 606, y2: 112, gate: 1, className: "gate-memory-path gate-arrow-gru" },
-      { x1: 210, y1: 167, x2: 244, y2: 126, gate: 1, className: "gate-signal-path gate-arrow-gru" },
-      { x1: 420, y1: 167, x2: 505, y2: 126, gate: 1, className: "gate-signal-path gate-arrow-gru" },
-      { x1: 472, y1: 93, x2: 472, y2: 97, gate: 0, className: "gate-signal-path gate-arrow-gru" },
-      { x1: 122, y1: 224, x2: 210, y2: 202, gate: 1, className: "gate-input-path gate-arrow-gru" },
-      { x1: 122, y1: 224, x2: 420, y2: 202, gate: 1, className: "gate-input-path gate-arrow-gru" },
-      { x1: 122, y1: 224, x2: 324, y2: 130, gate: 1, className: "gate-input-path gate-arrow-gru" },
-    ].forEach((path) => addArrow(gruSvg, path.className, { x1: path.x1, y1: path.y1, x2: path.x2, y2: path.y2, "data-gate": path.gate }));
-    addText(gruSvg, "No c_t cell state; no output gate", 488, 258, "gate-equation", { "data-gate": 2 });
+    addText(lstmSvg, "h_t = o_t * tanh(c_t)", 690, 408, "gate-equation", { "data-cell": "lstm", "data-gate": 2 });
 
-    figure.append(lstmSvg, gruSvg);
-
-    gateItems.forEach((gate, index) => {
-      const button = createElement("button", "diagram-button", gate.label);
-      button.type = "button";
-      button.addEventListener("click", () => activateGate(index));
-      gates.append(button);
+    addText(gruSvg, "GRU CELL", 98, 48, "gate-title");
+    addText(gruSvg, "h_t = (1 - z_t) * h_(t-1) + z_t * h~_t", 500, 48, "gate-equation");
+    const gruZones = [
+      { x: 150, y: 155, w: 300, h: 150, gate: 0, label: "Reset gate" },
+      { x: 540, y: 92, w: 250, h: 213, gate: 1, label: "Update gate" },
+    ];
+    gruZones.forEach((box) => {
+      gruSvg.append(
+        createSvgElement("rect", {
+          class: "gate-dashed-zone",
+          x: box.x,
+          y: box.y,
+          width: box.w,
+          height: box.h,
+          rx: 10,
+          "data-cell": "gru",
+          "data-gate": box.gate,
+        })
+      );
     });
+    addText(gruSvg, "h_(t-1)", 86, 118, "gate-state-label");
+    addText(gruSvg, "x_t", 110, 382, "gate-state-label");
+    addText(gruSvg, "h_t", 835, 118, "gate-state-label");
+    addRectLabel(gruSvg, "gate-chip", 245, 252, 76, 38, "sig", { "data-cell": "gru", "data-gate": 0 });
+    addRectLabel(gruSvg, "gate-chip gate-chip-tanh", 455, 252, 92, 38, "tanh", { "data-cell": "gru", "data-gate": 0 });
+    addRectLabel(gruSvg, "gate-chip", 620, 285, 76, 38, "sig", { "data-cell": "gru", "data-gate": 1 });
+    addRectLabel(gruSvg, "gate-chip", 620, 78, 84, 34, "1 - z_t", { "data-cell": "gru", "data-gate": 1 });
+    addText(gruSvg, "r_t", 245, 218, "gate-symbol", { "data-cell": "gru", "data-gate": 0 });
+    addText(gruSvg, "h~_t", 455, 218, "gate-symbol", { "data-cell": "gru", "data-gate": 0 });
+    addText(gruSvg, "z_t", 620, 250, "gate-symbol", { "data-cell": "gru", "data-gate": 1 });
+    addCircleLabel(gruSvg, "gate-operator", 330, 150, 18, "x", { "data-cell": "gru", "data-gate": 0 });
+    addCircleLabel(gruSvg, "gate-operator", 620, 118, 18, "x", { "data-cell": "gru", "data-gate": 1 });
+    addCircleLabel(gruSvg, "gate-operator", 690, 252, 18, "x", { "data-cell": "gru", "data-gate": 1 });
+    addCircleLabel(gruSvg, "gate-operator", 770, 118, 18, "+", { "data-cell": "gru", "data-gate": 1 });
+    [
+      { x1: 135, y1: 118, x2: 602, y2: 118, gate: 1, className: "gate-memory-path gate-arrow-gru" },
+      { x1: 638, y1: 118, x2: 750, y2: 118, gate: 1, className: "gate-memory-path gate-arrow-gru" },
+      { x1: 790, y1: 118, x2: 812, y2: 118, gate: 1, className: "gate-memory-path gate-arrow-gru" },
+      { x1: 292, y1: 118, x2: 318, y2: 142, gate: 0, className: "gate-signal-path gate-arrow-gru" },
+      { x1: 245, y1: 233, x2: 315, y2: 160, gate: 0, className: "gate-signal-path gate-arrow-gru" },
+      { x1: 348, y1: 158, x2: 426, y2: 235, gate: 0, className: "gate-signal-path gate-arrow-gru" },
+      { x1: 620, y1: 96, x2: 620, y2: 99, gate: 1, className: "gate-signal-path gate-arrow-gru" },
+      { x1: 620, y1: 266, x2: 675, y2: 260, gate: 1, className: "gate-signal-path gate-arrow-gru" },
+      { x1: 502, y1: 252, x2: 670, y2: 252, gate: 1, className: "gate-signal-path gate-arrow-gru" },
+      { x1: 704, y1: 240, x2: 758, y2: 132, gate: 1, className: "gate-signal-path gate-arrow-gru" },
+      { x1: 150, y1: 362, x2: 760, y2: 362, gate: 0, className: "gate-input-path gate-arrow-gru gate-input-bus" },
+      { x1: 245, y1: 362, x2: 245, y2: 271, gate: 0, className: "gate-input-path gate-arrow-gru" },
+      { x1: 455, y1: 362, x2: 455, y2: 271, gate: 0, className: "gate-input-path gate-arrow-gru" },
+      { x1: 620, y1: 362, x2: 620, y2: 304, gate: 1, className: "gate-input-path gate-arrow-gru" },
+    ].forEach((path) =>
+      addArrow(gruSvg, path.className, {
+        x1: path.x1,
+        y1: path.y1,
+        x2: path.x2,
+        y2: path.y2,
+        "data-cell": "gru",
+        "data-gate": path.gate,
+      })
+    );
+    gruZones.forEach((box) => {
+      addRectLabel(gruSvg, "gate-zone-badge", box.x + box.w / 2, box.y + box.h + 24, 120, 28, box.label, {
+        "data-cell": "gru",
+        "data-gate": box.gate,
+      });
+    });
+    addText(gruSvg, "No separate c_t state; no output gate", 662, 388, "gate-equation");
 
-    function activateGate(gateIndex) {
-      figure.querySelectorAll("[data-gate]").forEach((gate) => {
+    const lstmBlock = createElement("div", "gate-cell-block");
+    const gruBlock = createElement("div", "gate-cell-block");
+    const lstmControls = createGateControlGroup(lstmGateItems, activateLstmGate);
+    const gruControls = createGateControlGroup(gruGateItems, activateGruGate);
+
+    function activateLstmGate(gateIndex, controls = lstmControls.controls, caption = lstmControls.caption) {
+      lstmSvg.querySelectorAll('[data-cell="lstm"][data-gate]').forEach((gate) => {
         gate.classList.toggle("is-active", Number(gate.dataset.gate) === gateIndex);
       });
-      gates.querySelectorAll("button").forEach((button, buttonIndex) => {
+      controls.querySelectorAll("button").forEach((button, buttonIndex) => {
         button.classList.toggle("is-active", buttonIndex === gateIndex);
       });
-      caption.textContent = gateItems[gateIndex].description;
+      caption.textContent = lstmGateItems[gateIndex].description;
     }
 
-    shell.append(figure, gates, caption);
+    function activateGruGate(gateIndex, controls = gruControls.controls, caption = gruControls.caption) {
+      gruSvg.querySelectorAll('[data-cell="gru"][data-gate]').forEach((gate) => {
+        gate.classList.toggle("is-active", Number(gate.dataset.gate) === gateIndex);
+      });
+      controls.querySelectorAll("button").forEach((button, buttonIndex) => {
+        button.classList.toggle("is-active", buttonIndex === gateIndex);
+      });
+      caption.textContent = gruGateItems[gateIndex].description;
+    }
+
+    lstmBlock.append(lstmSvg, lstmControls.controls, lstmControls.caption);
+    gruBlock.append(gruSvg, gruControls.controls, gruControls.caption);
+    figure.append(lstmBlock, gruBlock);
+    shell.append(figure);
     elements.architectureView.replaceChildren(shell);
-    activateGate(0);
+    activateLstmGate(0);
+    activateGruGate(0);
   }
 
   function renderSeq2SeqArchitecture(panel) {
