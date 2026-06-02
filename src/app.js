@@ -21,7 +21,6 @@
     metricsLabel: document.querySelector("[data-metrics-label]"),
     metricsView: document.querySelector("[data-metrics-view]"),
     insightView: document.querySelector("[data-insight-view]"),
-    qmlProjects: document.querySelector("[data-qml-projects]"),
   };
 
   function pad(value) {
@@ -1154,24 +1153,89 @@
     return -1;
   }
 
-  function renderQmlProjectsArchitecture(panel) {
+  function renderQmlBridgeArchitecture(panel) {
+    const diagram = panel.diagram || {};
+    const stages = diagram.stages || [];
     const shell = createElement("div", "qml-bridge-view");
     const intro = createElement("p", "diagram-caption", panel.summary);
-    const grid = createElement("div", "qml-grid qml-grid-inline");
+    const flow = createElement("div", "qml-flow-map");
+    const controls = createElement("div", "diagram-controls");
+    const caption = createElement("p", "diagram-caption", stages[0]?.caption || panel.summary);
+    const projectLaunch = createElement("section", "qml-project-launch");
+    const projectIntro = createElement("p", "diagram-caption", "Choose a QML project to open its own workspace.");
+    const projectButtons = createElement("div", "qml-project-buttons");
 
-    projects.forEach((project) => {
-      const card = createElement("article", "project-card");
-      const label = createElement("div", "project-number", project.label);
-      const title = createElement("h3", "", project.title);
-      const placeholder = createElement("p", "", project.placeholder);
-      const block = createElement("div", "placeholder-block");
+    stages.forEach((stage, index) => {
+      const card = createElement("article", "qml-flow-card");
+      const number = createElement("span", "qml-flow-number", pad(index + 1));
+      const title = createElement("h4", "", stage.title);
+      const label = createElement("p", "", stage.label);
+      const button = createElement("button", "diagram-button", stage.label);
 
-      block.append(placeholder);
-      card.append(label, title, block);
-      grid.append(card);
+      card.dataset.stage = index;
+      button.type = "button";
+      button.addEventListener("click", () => activateStage(index));
+      card.append(number, title, label);
+      flow.append(card);
+      controls.append(button);
     });
 
-    shell.append(intro, grid);
+    projects.forEach((project) => {
+      const button = createElement("button", "qml-project-button");
+      const title = createElement("strong", "", project.title);
+
+      button.type = "button";
+      button.setAttribute("aria-label", `Open ${project.title}`);
+      button.addEventListener("click", () => {
+        setActiveProject(project.id, true);
+        scrollToWorkspace();
+      });
+      button.append(title);
+      projectButtons.append(button);
+    });
+
+    function activateStage(stageIndex) {
+      flow.querySelectorAll("[data-stage]").forEach((item) => {
+        item.classList.toggle("is-active", Number(item.dataset.stage) === stageIndex);
+      });
+      controls.querySelectorAll("button").forEach((button, buttonIndex) => {
+        button.classList.toggle("is-active", buttonIndex === stageIndex);
+      });
+      caption.textContent = stages[stageIndex].caption;
+    }
+
+    projectLaunch.append(projectIntro, projectButtons);
+    shell.append(intro, flow, controls, caption, projectLaunch);
+    elements.architectureView.replaceChildren(shell);
+    activateStage(0);
+  }
+
+  function renderQmlProjectArchitecture(panel) {
+    const projectId = panel.diagram?.projectId;
+    const project = projects.find((entry) => entry.id === projectId);
+    const shell = createElement("div", "qml-project-detail-view");
+    const back = createElement("button", "diagram-button project-back", "Back to QML Bridge");
+
+    back.type = "button";
+    back.addEventListener("click", () => {
+      setActiveModel("qml-bridge", true);
+      scrollToWorkspace();
+    });
+
+    if (!project) {
+      shell.append(back, createElement("p", "diagram-caption", "Project not found."));
+      elements.architectureView.replaceChildren(shell);
+      return;
+    }
+
+    const kicker = createElement("span", "project-kicker", project.kicker || "QML project");
+    const title = createElement("h3", "", project.title);
+    const summary = createElement("p", "project-summary", project.summary || project.placeholder);
+    const relation = createElement("p", "project-relation", project.relation || "Classical connection placeholder");
+    const placeholder = createElement("div", "placeholder-block");
+
+    placeholder.append(createElement("p", "", project.placeholder || "Project architecture placeholder"));
+    shell.append(kicker, title, summary, relation, placeholder);
     elements.architectureView.replaceChildren(shell);
   }
 
@@ -1475,8 +1539,13 @@
       return;
     }
 
-    if (panel.diagram.type === "qml-projects") {
-      renderQmlProjectsArchitecture(panel);
+    if (panel.diagram.type === "qml-bridge") {
+      renderQmlBridgeArchitecture(panel);
+      return;
+    }
+
+    if (panel.diagram.type === "qml-project-detail") {
+      renderQmlProjectArchitecture(panel);
       return;
     }
 
@@ -2019,6 +2088,47 @@
     activateState(panel.initialState || 0);
   }
 
+  function renderQmlFlowDemo(panel) {
+    const { shell, stage, buttons, caption } = createDemoShell(panel);
+    const visual = createElement("div", "qml-demo-visual");
+    const visualHeader = createElement("div", "qml-demo-visual-header");
+    const visualNumber = createElement("span", "qml-flow-number");
+    const visualTitle = createElement("h4");
+    const graphicSlot = createElement("div", "qml-demo-graphic-slot");
+    const graphicLabel = createElement("span", "qml-demo-graphic-label");
+
+    visualHeader.append(visualNumber, visualTitle);
+    graphicSlot.append(graphicLabel);
+    visual.append(visualHeader, graphicSlot);
+
+    panel.states.forEach((state, index) => {
+      const button = createElement("button", "demo-button", state.label);
+
+      button.type = "button";
+      button.addEventListener("click", () => activateState(index));
+      buttons.append(button);
+    });
+
+    stage.append(visual);
+
+    function activateState(stateIndex) {
+      const state = panel.states[stateIndex];
+
+      buttons.querySelectorAll("button").forEach((button, buttonIndex) => {
+        button.classList.toggle("is-active", buttonIndex === stateIndex);
+      });
+
+      visualNumber.textContent = pad(stateIndex + 1);
+      visualTitle.textContent = state.label;
+      graphicLabel.textContent = state.graphicPlaceholder || `${state.label} graphic slot`;
+      graphicSlot.dataset.stage = String(state.activeStage);
+      caption.textContent = state.viewNote || "Graphic slot reserved for this step.";
+    }
+
+    elements.demoView.replaceChildren(shell);
+    activateState(panel.initialState || 0);
+  }
+
   function renderDemoPanel(panel, architecture) {
     if (!elements.demoView) {
       return;
@@ -2053,6 +2163,11 @@
 
     if (panel.type === "encoder-decoder") {
       renderEncoderDecoderDemo(panel, architecture);
+      return;
+    }
+
+    if (panel.type === "qml-flow") {
+      renderQmlFlowDemo(panel);
       return;
     }
 
@@ -2161,33 +2276,90 @@
     );
   }
 
-  function renderProjects() {
-    if (!elements.qmlProjects) {
+  function getModelFromHash() {
+    const modelId = location.hash.slice(1);
+
+    return models.some((model) => model.id === modelId) ? modelId : "";
+  }
+
+  function getProjectHash(projectId) {
+    return `qml-project-${projectId}`;
+  }
+
+  function getProjectFromHash() {
+    const hash = location.hash.slice(1);
+    const prefix = "qml-project-";
+
+    if (!hash.startsWith(prefix)) {
+      return "";
+    }
+
+    const projectId = hash.slice(prefix.length);
+    return projects.some((project) => project.id === projectId) ? projectId : "";
+  }
+
+  function scrollToWorkspace(behavior = "smooth") {
+    const workspace = document.getElementById("workspace");
+
+    if (!workspace) {
       return;
     }
 
-    const projectCards = projects.map((project) => {
-      const article = document.createElement("article");
-      const label = document.createElement("div");
-      const title = document.createElement("h3");
-      const placeholderBlock = document.createElement("div");
-      const placeholder = document.createElement("p");
+    const headerOffset = 88;
+    const top = workspace.getBoundingClientRect().top + window.scrollY - headerOffset;
 
-      article.className = "project-card";
-      label.className = "project-number";
-      placeholderBlock.className = "placeholder-block";
+    window.scrollTo({
+      top: Math.max(top, 0),
+      behavior,
+    });
+  }
 
-      label.textContent = project.label;
-      title.textContent = project.title;
-      placeholder.textContent = project.placeholder;
+  function scrollToWorkspaceAfterLoad() {
+    const run = () => {
+      requestAnimationFrame(() => scrollToWorkspace("auto"));
+      window.setTimeout(() => scrollToWorkspace("auto"), 80);
+    };
 
-      placeholderBlock.append(placeholder);
-      article.append(label, title, placeholderBlock);
+    if (document.readyState === "complete") {
+      run();
+      return;
+    }
 
-      return article;
+    window.addEventListener("load", run, { once: true });
+  }
+
+  function bindModelLinks() {
+    document.querySelectorAll("[data-model-link]").forEach((link) => {
+      link.addEventListener("click", (event) => {
+        const modelId = link.dataset.modelLink;
+
+        if (!modelId) {
+          return;
+        }
+
+        event.preventDefault();
+        setActiveModel(modelId, true);
+        scrollToWorkspace();
+      });
     });
 
-    elements.qmlProjects.replaceChildren(...projectCards);
+    window.addEventListener("hashchange", () => {
+      const projectId = getProjectFromHash();
+      const modelId = getModelFromHash();
+
+      if (projectId) {
+        setActiveProject(projectId);
+        scrollToWorkspace();
+        return;
+      }
+
+      if (!modelId) {
+        return;
+      }
+
+      setActiveModel(modelId);
+      scrollToWorkspace();
+    });
   }
 
   function renderFormulaStrip(panel) {
@@ -2228,6 +2400,97 @@
 
     elements.modelBrief.replaceChildren(year, copy);
     renderFormulaStrip(panels.math);
+  }
+
+  function createProjectPanels(project) {
+    return {
+      architecture: {
+        summary: project.summary || project.placeholder || "QML project workspace.",
+        diagram: {
+          type: "qml-project-detail",
+          projectId: project.id,
+        },
+      },
+      math: {
+        label: project.mathLabel || "Project math",
+        formula: "",
+        terms: [],
+        note: "",
+        placeholder: project.mathPlaceholder || "Project math placeholder",
+      },
+      demo: {
+        label: project.demoLabel || "Project interactive view",
+        type: "placeholder",
+        title: project.demoTitle || "Project interactive view",
+        description: project.demoDescription || "Interactive project view placeholder.",
+        states: [],
+        placeholder: project.demoPlaceholder || "Project interactive view placeholder",
+      },
+      controls: {
+        label: project.controlsLabel || "Project sections",
+        items: project.sections || ["Architecture", "Math", "Experiment"],
+      },
+      metrics: {
+        label: project.metricsLabel || "Project status",
+        title: project.metricsTitle || "Next content pass",
+        points: project.points || ["Architecture pending", "Math pending", "Interactive demo pending"],
+        placeholder: "Project status placeholder",
+      },
+    };
+  }
+
+  function setActiveProject(projectId, shouldUpdateHash = false) {
+    const project = projects.find((entry) => entry.id === projectId);
+
+    if (!project) {
+      return;
+    }
+
+    if (shouldUpdateHash) {
+      history.replaceState(null, "", `#${getProjectHash(project.id)}`);
+    }
+
+    const panels = createProjectPanels(project);
+
+    setText(elements.title, project.title);
+    renderModelBrief(
+      {
+        year: project.year || project.label,
+        overview: {
+          what: project.summary || project.placeholder || "QML project workspace.",
+          consists: project.relation || "Project-specific content will be added here.",
+        },
+      },
+      panels
+    );
+    setText(elements.model, project.title);
+    setText(elements.index, project.label);
+    setText(elements.mathLabel, panels.math.label);
+    setText(elements.demoLabel, panels.demo.label);
+    setText(elements.controlsLabel, panels.controls.label);
+    setText(elements.metricsLabel, panels.metrics.label);
+
+    const back = createElement("button", "diagram-button project-header-back", "Back to QML Bridge");
+    back.type = "button";
+    back.addEventListener("click", () => {
+      setActiveModel("qml-bridge", true);
+      scrollToWorkspace();
+    });
+    elements.index.replaceChildren(back);
+
+    renderArchitecturePanel(panels.architecture);
+    renderMathPanel(panels.math);
+    renderDemoPanel(panels.demo, panels.architecture);
+    renderControlsPanel(panels.controls);
+    renderMetricsPanel(panels.metrics);
+    renderInsightStrip(panels);
+
+    document.querySelectorAll(".timeline-item").forEach((item) => {
+      const isQmlBridge = item.dataset.model === "qml-bridge";
+
+      item.classList.toggle("is-active", isQmlBridge);
+      item.setAttribute("aria-selected", String(isQmlBridge));
+    });
   }
 
   function setActiveModel(modelId, shouldUpdateHash = false) {
@@ -2274,6 +2537,19 @@
   }
 
   renderTimeline();
-  renderProjects();
-  setActiveModel(models.some((model) => model.id === location.hash.slice(1)) ? location.hash.slice(1) : models[0].id);
+  bindModelLinks();
+
+  const initialProjectId = getProjectFromHash();
+  const initialModelId = getModelFromHash();
+
+  if (initialProjectId) {
+    setActiveProject(initialProjectId);
+    scrollToWorkspaceAfterLoad();
+  } else {
+    setActiveModel(initialModelId || models[0].id);
+
+    if (initialModelId) {
+      scrollToWorkspaceAfterLoad();
+    }
+  }
 })();
