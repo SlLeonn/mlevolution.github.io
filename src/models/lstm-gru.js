@@ -41,70 +41,38 @@
         },
         math: {
           label: "Gated memory",
-          formula: "LSTM: c_t = f_t*c_(t-1) + i_t*c~_t, h_t = o_t*tanh(c_t). GRU: h_t = (1-z_t)*h_(t-1) + z_t*h~_t",
-          formulaHtml:
-            "LSTM: c<sub>t</sub> = f<sub>t</sub> &odot; c<sub>t-1</sub> + i<sub>t</sub> &odot; c&#771;<sub>t</sub>, h<sub>t</sub> = o<sub>t</sub> &odot; tanh(c<sub>t</sub>) &nbsp; | &nbsp; GRU: h<sub>t</sub> = (1 - z<sub>t</sub>) &odot; h<sub>t-1</sub> + z<sub>t</sub> &odot; h&#771;<sub>t</sub>",
-          terms: [
-            "sigma: gate between 0 and 1",
-            "odot: element-wise product",
-            "c_t: LSTM cell state",
-            "h_t: hidden state",
-            "f_t/i_t/o_t: LSTM gates",
-            "r_t/z_t: GRU gates",
-          ],
-          intro:
-            "Both units are recurrent cells, but their internal memory is different. LSTM keeps a separate cell state c_t; GRU folds memory into h_t with fewer gates.",
+          formula: "m_t = keep_t*m_(t-1) + update_t*candidate_t",
+          formulaMath:
+            '<math display="block"><msub><mi>m</mi><mi>t</mi></msub><mo>=</mo><msub><mi>k</mi><mi>t</mi></msub><mo>&odot;</mo><msub><mi>m</mi><mrow><mi>t</mi><mo>-</mo><mn>1</mn></mrow></msub><mo>+</mo><msub><mi>u</mi><mi>t</mi></msub><mo>&odot;</mo><msub><mover><mi>m</mi><mo>~</mo></mover><mi>t</mi></msub></math>',
+          terms: ["k_t: keep gate", "u_t: update gate", "m_t: memory state"],
+          intro: "LSTM and GRU keep the recurrent idea from RNNs, but they learn gates that decide what to preserve, what to write, and what to expose.",
           steps: [
             {
-              meta: "01 / LSTM gates",
-              title: "Compute three memory valves",
-              equationHtml:
-                "f<sub>t</sub>, i<sub>t</sub>, o<sub>t</sub> = &sigma;(W[x<sub>t</sub>, h<sub>t-1</sub>] + b)",
-              copy:
-                "The forget gate keeps old memory, the input gate writes new memory, and the output gate decides what becomes visible.",
+              meta: "01 / keep old memory",
+              title: "Decide what survives",
+              equationHtml: "k<sub>t</sub> &odot; m<sub>t-1</sub>",
+              copy: "A keep or forget gate protects useful past information instead of overwriting the whole state at every step.",
             },
             {
-              meta: "02 / LSTM candidate",
-              title: "Propose new cell content",
-              equationHtml: "c&#771;<sub>t</sub> = tanh(W<sub>c</sub>[x<sub>t</sub>, h<sub>t-1</sub>] + b<sub>c</sub>)",
-              copy:
-                "The candidate is the new information the cell could write, but it only enters memory if the input gate allows it.",
+              meta: "02 / propose new content",
+              title: "Build a candidate update",
+              equationHtml: "m&#771;<sub>t</sub> = candidate(x<sub>t</sub>, h<sub>t-1</sub>)",
+              copy: "The cell computes new evidence from the current input and the previous hidden state.",
             },
             {
-              meta: "03 / LSTM state",
-              title: "Keep, write, then expose",
-              equationHtml:
-                "c<sub>t</sub> = f<sub>t</sub> &odot; c<sub>t-1</sub> + i<sub>t</sub> &odot; c&#771;<sub>t</sub><br>h<sub>t</sub> = o<sub>t</sub> &odot; tanh(c<sub>t</sub>)",
-              copy:
-                "The cell state carries long-term memory, while h_t is the part of that memory exposed to the next layer or time step.",
+              meta: "03 / write selectively",
+              title: "Blend old and new information",
+              equationHtml: "m<sub>t</sub> = k<sub>t</sub> &odot; m<sub>t-1</sub> + u<sub>t</sub> &odot; m&#771;<sub>t</sub>",
+              copy: "The update gate controls how much candidate information enters the memory.",
             },
             {
-              meta: "04 / GRU gates",
-              title: "Compute reset and update gates",
-              equationHtml:
-                "r<sub>t</sub> = &sigma;(W<sub>r</sub>[x<sub>t</sub>, h<sub>t-1</sub>] + b<sub>r</sub>), &nbsp; z<sub>t</sub> = &sigma;(W<sub>z</sub>[x<sub>t</sub>, h<sub>t-1</sub>] + b<sub>z</sub>)",
-              copy:
-                "The reset gate controls how much past state builds the candidate; the update gate controls how much new state is written.",
-            },
-            {
-              meta: "05 / GRU candidate",
-              title: "Shape the candidate state",
-              equationHtml:
-                "h&#771;<sub>t</sub> = tanh(W<sub>h</sub>[x<sub>t</sub>, r<sub>t</sub> &odot; h<sub>t-1</sub>] + b<sub>h</sub>)",
-              copy:
-                "If r_t is small, the candidate ignores much of the past and focuses on the current input.",
-            },
-            {
-              meta: "06 / GRU state",
-              title: "Blend old and new memory",
-              equationHtml:
-                "h<sub>t</sub> = (1 - z<sub>t</sub>) &odot; h<sub>t-1</sub> + z<sub>t</sub> &odot; h&#771;<sub>t</sub>",
-              copy:
-                "GRU has no separate c_t or output gate. Its hidden state is both the memory and the visible output.",
+              meta: "04 / expose state",
+              title: "Return a useful hidden state",
+              equationHtml: "h<sub>t</sub> = read(m<sub>t</sub>)",
+              copy: "LSTM reads from a separate cell state c_t; GRU merges memory directly into h_t for a simpler unit.",
             },
           ],
-          note:
-            "The main idea is controlled writing. Plain RNNs overwrite memory at every step; LSTM and GRU learn when to preserve, reset, update, or expose information.",
+          note: "LSTM has separate cell memory and three main gates; GRU is simpler, usually with reset and update gates. Both reduce the forgetting problem of plain RNNs.",
         },
         demo: {
           label: "Gate flow",
