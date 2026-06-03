@@ -458,6 +458,8 @@ h4 {
 .sequence-svg,
 .gate-svg,
 .seq2seq-svg,
+.attention-demo-svg,
+.transformer-demo-svg,
 .sequence-demo-svg,
 .gate-demo-svg,
 .seq2seq-demo-svg {
@@ -637,6 +639,91 @@ h4 {
 .transformer-stack-label {
   fill: var(--muted);
   font-size: 12px;
+}
+
+.attention-demo-token rect,
+.transformer-demo-block rect {
+  fill: var(--surface);
+  stroke: rgba(36, 106, 115, 0.42);
+  stroke-width: 2;
+  transition:
+    fill 160ms ease,
+    stroke 160ms ease;
+}
+
+.attention-demo-token text,
+.attention-query-label,
+.attention-weight-bar text,
+.attention-demo-label,
+.transformer-demo-block text,
+.transformer-demo-note {
+  fill: var(--ink);
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.attention-demo-label,
+.transformer-demo-note,
+.attention-weight-bar text {
+  fill: var(--muted);
+  font-size: 12px;
+}
+
+.attention-demo-token.is-query rect,
+.transformer-demo-block.is-primary rect {
+  fill: rgba(194, 125, 67, 0.14);
+  stroke: var(--warm);
+}
+
+.attention-demo-token.is-strong rect,
+.transformer-demo-block.is-active rect {
+  fill: rgba(36, 106, 115, 0.12);
+}
+
+.attention-query-ring {
+  fill: none;
+  stroke: var(--warm);
+  stroke-dasharray: 5 5;
+  stroke-width: 2.2;
+}
+
+.attention-demo-arc,
+.transformer-demo-flow {
+  fill: none;
+  stroke: var(--accent);
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.attention-weight-track {
+  fill: rgba(101, 112, 117, 0.18);
+}
+
+.attention-weight-fill {
+  fill: rgba(36, 106, 115, 0.48);
+  transition: width 180ms ease;
+}
+
+.attention-weight-bar.is-strong .attention-weight-fill {
+  fill: var(--warm);
+}
+
+.transformer-demo-flow {
+  stroke: rgba(101, 112, 117, 0.32);
+  stroke-width: 2.2;
+  transition:
+    stroke 160ms ease,
+    stroke-width 160ms ease;
+}
+
+.transformer-demo-flow.is-active {
+  stroke: rgba(36, 106, 115, 0.72);
+  stroke-width: 3;
+}
+
+.transformer-demo-flow.is-primary {
+  stroke: var(--warm);
+  stroke-width: 3.4;
 }
 
 .diagram-controls,

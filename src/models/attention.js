@@ -86,6 +86,38 @@
           note:
             "Attention is powerful because every position can directly compare itself with every other position. The mechanism is content-based: it learns relevance from the token representations instead of relying only on distance or order.",
         },
+        demo: {
+          label: "Attention weights",
+          type: "attention-weights",
+          title: "Watch one query choose what to read",
+          description:
+            "Switch the query token and the attention distribution changes, even though the value tokens stay in the same sequence.",
+          tokens: ["I", "saw", "the", "bank", "river"],
+          states: [
+            {
+              label: "query: saw",
+              queryIndex: 1,
+              weights: [0.12, 0.18, 0.14, 0.34, 0.22],
+              caption:
+                "The verb reads nearby nouns and context words to build a useful representation for the action.",
+            },
+            {
+              label: "query: bank",
+              queryIndex: 3,
+              weights: [0.05, 0.12, 0.08, 0.22, 0.55],
+              caption:
+                "The token bank strongly attends to river, disambiguating the meaning toward a river bank.",
+            },
+            {
+              label: "query: river",
+              queryIndex: 4,
+              weights: [0.04, 0.08, 0.10, 0.60, 0.18],
+              caption:
+                "The token river reads back to bank, showing that attention is a directed, token-specific weighting.",
+            },
+          ],
+          initialState: 1,
+        },
         controls: {
           label: "Training idea",
           items: ["queries", "keys", "values", "softmax weights", "context vector"],

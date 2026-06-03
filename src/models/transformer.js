@@ -117,6 +117,51 @@
           note:
             "This keeps the transformer explanation separate from the attention explanation: attention computes relevance weights, while the transformer organizes attention into a trainable deep architecture with normalization, skip connections, feed-forward layers, and repeated blocks.",
         },
+        demo: {
+          label: "Block flow",
+          type: "transformer-block",
+          title: "Step through one transformer block",
+          description:
+            "Attention is one sublayer. The full block also uses residual paths, normalization, and a feed-forward update.",
+          states: [
+            {
+              label: "input",
+              activeStages: [0],
+              primaryStage: 0,
+              caption:
+                "The block begins with token embeddings plus positional information.",
+            },
+            {
+              label: "attention",
+              activeStages: [0, 1, 2],
+              primaryStage: 1,
+              caption:
+                "Multi-head attention mixes information across tokens, then add + norm stabilizes the update.",
+            },
+            {
+              label: "feed-forward",
+              activeStages: [2, 3, 4],
+              primaryStage: 3,
+              caption:
+                "The feed-forward network transforms each token after attention has shared context.",
+            },
+            {
+              label: "residuals",
+              activeStages: [0, 2, 4, 5, 6],
+              primaryStage: 6,
+              caption:
+                "Residual paths preserve information and gradients while each sublayer contributes an update.",
+            },
+            {
+              label: "output",
+              activeStages: [4, 5],
+              primaryStage: 5,
+              caption:
+                "The resulting state feeds the next block or the final prediction head.",
+            },
+          ],
+          initialState: 1,
+        },
         controls: {
           label: "Training idea",
           items: ["positions", "heads", "residuals", "layer norm", "feed-forward", "L blocks"],

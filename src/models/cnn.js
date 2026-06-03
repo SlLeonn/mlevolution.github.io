@@ -64,11 +64,11 @@
               meta: "02 / convolution",
               title: "Slide a learned filter over local patches",
               equation:
-                "z_(i,j,k)=b_k+sum_c sum_u sum_v W_(u,v,c,k)x_(Si+u-P,Sj+v-P,c)",
+                "z_(i,j,k)=<K_k, patch_(i,j)(X)>+b_k",
               equationHtml:
-                "z<sub>i,j,k</sub> = b<sub>k</sub> + &sum;<sub>c</sub>&sum;<sub>u=0</sub><sup>F-1</sup>&sum;<sub>v=0</sub><sup>F-1</sup> W<sub>u,v,c,k</sub>x<sub>Si+u-P,Sj+v-P,c</sub>",
+                "z<sub>i,j,k</sub> = &lang;K<sub>k</sub>, patch<sub>i,j</sub>(X)&rang; + b<sub>k</sub>",
               copy:
-                "Filter k multiplies a small F x F patch and sums the products. The same weights are reused across the image, so one detector can find the same edge or texture anywhere.",
+                "Filter K_k is compared with the local image patch at position (i, j). The inner product means multiply matching entries across height, width, and channels, then sum them. Stride moves the patch location, padding controls border handling, and the same K_k is reused everywhere.",
             },
             {
               meta: "03 / spatial size",

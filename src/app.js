@@ -2129,6 +2129,201 @@
     activateState(panel.initialState || 0);
   }
 
+  function renderAttentionWeightsDemo(panel) {
+    const { shell, stage, buttons, caption } = createDemoShell(panel);
+    const tokens = panel.tokens || ["x1", "x2", "x3", "x4"];
+    const svg = createSvgElement("svg", {
+      class: "attention-demo-svg",
+      viewBox: "0 0 720 250",
+      role: "img",
+      "aria-label": panel.title,
+    });
+    const positions = spreadPositions(tokens.length, 92, 628);
+    const queryGroup = createSvgElement("g", { class: "attention-demo-query" });
+    const arcGroup = createSvgElement("g", { class: "attention-demo-arcs" });
+    const tokenGroup = createSvgElement("g", { class: "attention-demo-tokens" });
+    const barGroup = createSvgElement("g", { class: "attention-demo-bars" });
+
+    tokens.forEach((token, index) => {
+      const x = positions[index];
+      const node = createSvgElement("g", {
+        class: "attention-demo-token",
+        transform: `translate(${x} 82)`,
+        "data-token": index,
+      });
+
+      node.append(
+        createSvgElement("rect", { x: -34, y: -22, width: 68, height: 44, rx: 9 }),
+        createSvgElement("text", { y: 5, "text-anchor": "middle" })
+      );
+      node.querySelector("text").textContent = token;
+      tokenGroup.append(node);
+
+      const bar = createSvgElement("g", {
+        class: "attention-weight-bar",
+        transform: `translate(${x - 28} 170)`,
+        "data-token": index,
+      });
+      bar.append(
+        createSvgElement("rect", { class: "attention-weight-track", width: 56, height: 12, rx: 6 }),
+        createSvgElement("rect", { class: "attention-weight-fill", width: 0, height: 12, rx: 6 }),
+        createSvgElement("text", { x: 28, y: 34, "text-anchor": "middle" })
+      );
+      bar.querySelector("text").textContent = "0.00";
+      barGroup.append(bar);
+    });
+
+    svg.append(
+      createSvgElement("text", { class: "attention-demo-label", x: 360, y: 34, "text-anchor": "middle" }),
+      arcGroup,
+      tokenGroup,
+      barGroup,
+      queryGroup
+    );
+    svg.querySelector(".attention-demo-label").textContent = "softmax(QK^T) chooses how strongly the query reads each value";
+    stage.append(svg);
+
+    function drawQuery(queryIndex, weights) {
+      const queryX = positions[queryIndex];
+
+      queryGroup.replaceChildren(
+        createSvgElement("circle", { class: "attention-query-ring", cx: queryX, cy: 82, r: 35 }),
+        createSvgElement("text", { class: "attention-query-label", x: queryX, y: 136, "text-anchor": "middle" })
+      );
+      queryGroup.querySelector("text").textContent = "query";
+
+      arcGroup.replaceChildren(
+        ...weights.map((weight, index) => {
+          const x = positions[index];
+          const lift = 58 + Math.abs(index - queryIndex) * 16;
+
+          return createSvgElement("path", {
+            class: "attention-demo-arc",
+            d: `M ${queryX} 66 C ${(queryX + x) / 2} ${66 - lift}, ${(queryX + x) / 2} ${66 - lift}, ${x} 66`,
+            "data-token": index,
+            "stroke-width": 1.5 + weight * 8,
+            opacity: 0.22 + weight * 0.78,
+          });
+        })
+      );
+
+      svg.querySelectorAll(".attention-demo-token").forEach((token) => {
+        const index = Number(token.dataset.token);
+
+        token.classList.toggle("is-query", index === queryIndex);
+        token.classList.toggle("is-strong", weights[index] >= 0.3);
+      });
+
+      svg.querySelectorAll(".attention-weight-bar").forEach((bar) => {
+        const index = Number(bar.dataset.token);
+        const weight = weights[index] || 0;
+
+        bar.querySelector(".attention-weight-fill").setAttribute("width", String(56 * weight));
+        bar.querySelector("text").textContent = weight.toFixed(2);
+        bar.classList.toggle("is-strong", weight >= 0.3);
+      });
+    }
+
+    function activateState(stateIndex) {
+      const state = panel.states[stateIndex];
+
+      drawQuery(state.queryIndex, state.weights);
+      caption.textContent = state.caption;
+      buttons.querySelectorAll("button").forEach((button, buttonIndex) => {
+        button.classList.toggle("is-active", buttonIndex === stateIndex);
+      });
+    }
+
+    panel.states.forEach((state, stateIndex) => {
+      const button = createElement("button", "demo-button", state.label);
+
+      button.type = "button";
+      button.addEventListener("click", () => activateState(stateIndex));
+      buttons.append(button);
+    });
+
+    elements.demoView.replaceChildren(shell);
+    activateState(panel.initialState || 0);
+  }
+
+  function renderTransformerBlockDemo(panel) {
+    const { shell, stage, buttons, caption } = createDemoShell(panel);
+    const svg = createSvgElement("svg", {
+      class: "transformer-demo-svg",
+      viewBox: "0 0 720 260",
+      role: "img",
+      "aria-label": panel.title,
+    });
+    const blocks = [
+      { key: "input", label: "X + P", x: 48, y: 104, width: 92, height: 54 },
+      { key: "attention", label: "MHA", x: 190, y: 60, width: 108, height: 54 },
+      { key: "norm1", label: "Add + Norm", x: 354, y: 60, width: 116, height: 54 },
+      { key: "ffn", label: "FFN", x: 190, y: 166, width: 108, height: 54 },
+      { key: "norm2", label: "Add + Norm", x: 354, y: 166, width: 116, height: 54 },
+      { key: "output", label: "H_(l+1)", x: 548, y: 104, width: 112, height: 54 },
+    ];
+
+    blocks.forEach((block, index) => {
+      const group = createSvgElement("g", {
+        class: "transformer-demo-block",
+        transform: `translate(${block.x} ${block.y})`,
+        "data-stage": index,
+      });
+
+      group.append(
+        createSvgElement("rect", { width: block.width, height: block.height, rx: 9 }),
+        createSvgElement("text", { x: block.width / 2, y: block.height / 2 + 5, "text-anchor": "middle" })
+      );
+      setSvgMathText(group.querySelector("text"), block.label);
+      svg.append(group);
+    });
+
+    [
+      { d: "M 140 131 C 166 132, 170 87, 190 87", stage: 1 },
+      { d: "M 298 87 L 354 87", stage: 2 },
+      { d: "M 412 114 C 412 138, 314 152, 244 166", stage: 3 },
+      { d: "M 298 193 L 354 193", stage: 4 },
+      { d: "M 470 193 C 516 186, 520 142, 548 131", stage: 5 },
+      { d: "M 140 131 C 230 138, 446 138, 548 131", stage: 6 },
+    ].forEach((flow) => {
+      svg.append(createSvgElement("path", { class: "transformer-demo-flow", d: flow.d, "data-stage": flow.stage }));
+    });
+
+    svg.append(
+      createSvgElement("text", { class: "transformer-demo-note", x: 360, y: 36, "text-anchor": "middle" }),
+      createSvgElement("text", { class: "transformer-demo-note", x: 360, y: 244, "text-anchor": "middle" })
+    );
+    svg.querySelectorAll(".transformer-demo-note")[0].textContent = "attention mixes tokens";
+    svg.querySelectorAll(".transformer-demo-note")[1].textContent = "residual paths keep information moving";
+    stage.append(svg);
+
+    function activateState(stateIndex) {
+      const state = panel.states[stateIndex];
+
+      svg.querySelectorAll("[data-stage]").forEach((item) => {
+        const itemStage = Number(item.dataset.stage);
+
+        item.classList.toggle("is-active", state.activeStages.includes(itemStage));
+        item.classList.toggle("is-primary", itemStage === state.primaryStage);
+      });
+      caption.textContent = state.caption;
+      buttons.querySelectorAll("button").forEach((button, buttonIndex) => {
+        button.classList.toggle("is-active", buttonIndex === stateIndex);
+      });
+    }
+
+    panel.states.forEach((state, stateIndex) => {
+      const button = createElement("button", "demo-button", state.label);
+
+      button.type = "button";
+      button.addEventListener("click", () => activateState(stateIndex));
+      buttons.append(button);
+    });
+
+    elements.demoView.replaceChildren(shell);
+    activateState(panel.initialState || 0);
+  }
+
   function renderDemoPanel(panel, architecture) {
     if (!elements.demoView) {
       return;
@@ -2168,6 +2363,16 @@
 
     if (panel.type === "qml-flow") {
       renderQmlFlowDemo(panel);
+      return;
+    }
+
+    if (panel.type === "attention-weights") {
+      renderAttentionWeightsDemo(panel);
+      return;
+    }
+
+    if (panel.type === "transformer-block") {
+      renderTransformerBlockDemo(panel);
       return;
     }
 
