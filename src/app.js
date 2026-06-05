@@ -2357,43 +2357,57 @@
 
     function renderBridgeCircuitGraphic() {
       const svg = makeDemoSvg("qml-flow-bridge-circuit", "Parameterized quantum circuit");
-      const ys = [96, 150, 204];
+      const ys = [122, 172, 232];
 
       appendSvgText(svg, "Trainable circuit core", { class: "qml-flow-title", x: 42, y: 36 });
-      appendSvgText(svg, "|psi(x, theta)> = U_theta |psi(x)>", {
+      appendSvgText(svg, "|ψ(x, θ)⟩ = Uθ|ψ(x)⟩", {
         class: "qml-flow-formula",
         x: 410,
         y: 36,
         "text-anchor": "middle",
       });
-      appendBox(svg, { x: 50, y: 126, width: 120, height: 54, label: "|psi(x)>", sublabel: "encoded" });
-      appendBox(svg, { x: 610, y: 126, width: 120, height: 54, label: "|psi(x,theta)>", sublabel: "trained state" });
+      appendBox(svg, { x: 42, y: 128, width: 120, height: 56, label: "|ψ(x)⟩", sublabel: "encoded" });
+      appendBox(svg, { x: 236, y: 44, width: 104, height: 42, label: "θ", sublabel: "parameters" });
+      appendSvgText(svg, "Uθ", { class: "qml-flow-formula", x: 390, y: 82, "text-anchor": "middle" });
+      svg.append(createSvgElement("rect", { class: "qml-feature-map-frame", x: 226, y: 92, width: 328, height: 168, rx: 12 }));
+      appendBox(svg, { x: 606, y: 128, width: 124, height: 56, label: "|ψ(x, θ)⟩", sublabel: "trained state" });
+      appendArrow(svg, 162, 156, 224, 156);
+      appendCurvedArrow(svg, "M 340 66 C 360 72, 364 92, 364 104", 364, 104, 88, "qml-control-arrow");
 
       ys.forEach((y, index) => {
-        const gateLabel = createSvgElement("text", { class: "qml-flow-text", x: 319, y: y + 5, "text-anchor": "middle" });
+        const wireLabel = createSvgElement("text", { class: "qml-flow-small-text", x: 248, y: y + 4 });
+        const gateLabel = createSvgElement("text", { class: "qml-flow-text", x: 374, y: y + 5, "text-anchor": "middle" });
 
-        gateLabel.textContent = `R(theta_${index + 1})`;
+        wireLabel.textContent = ["q₁", "q₂", "qₖ"][index];
+        gateLabel.textContent = ["R(θ₁)", "R(θ₂)", "R(θₖ)"][index];
         svg.append(
-          createSvgElement("line", { class: "qml-qubit-line", x1: 210, y1: y, x2: 574, y2: y }),
-          createSvgElement("rect", { class: "qml-gate qml-train-gate", x: 280, y: y - 18, width: 78, height: 36, rx: 7 }),
-          gateLabel,
-          createSvgElement("circle", { class: "qml-knob", cx: 318, cy: 66 + index * 16, r: 6 }),
-          createSvgElement("line", { class: "qml-control-link", x1: 318, y1: 72 + index * 16, x2: 319, y2: y - 18 })
+          wireLabel,
+          createSvgElement("line", { class: "qml-qubit-line", x1: 276, y1: y, x2: 528, y2: y }),
+          createSvgElement("rect", { class: "qml-gate qml-train-gate", x: 324, y: y - 18, width: 100, height: 36, rx: 7 }),
+          gateLabel
         );
       });
 
+      [194, 202, 210].forEach((y) => {
+        svg.append(createSvgElement("circle", { class: "qml-ellipsis-dot", cx: 374, cy: y, r: 2.8 }));
+      });
       svg.append(
-        createSvgElement("line", { class: "qml-entangle-line", x1: 438, y1: ys[0], x2: 438, y2: ys[1] }),
-        createSvgElement("circle", { class: "qml-control", cx: 438, cy: ys[0], r: 5 }),
-        createSvgElement("circle", { class: "qml-target", cx: 438, cy: ys[1], r: 10 }),
-        createSvgElement("line", { class: "qml-target-cross", x1: 428, y1: ys[1], x2: 448, y2: ys[1] }),
-        createSvgElement("line", { class: "qml-target-cross", x1: 438, y1: ys[1] - 10, x2: 438, y2: ys[1] + 10 }),
-        createSvgElement("path", { class: "qml-entangle-link", d: `M 458 ${ys[1]} C 500 150, 500 204, 458 ${ys[2]}` })
+        createSvgElement("line", { class: "qml-entangle-line", x1: 470, y1: ys[0], x2: 470, y2: ys[1] }),
+        createSvgElement("circle", { class: "qml-control", cx: 470, cy: ys[0], r: 5 }),
+        createSvgElement("circle", { class: "qml-target", cx: 470, cy: ys[1], r: 10 }),
+        createSvgElement("line", { class: "qml-target-cross", x1: 460, y1: ys[1], x2: 480, y2: ys[1] }),
+        createSvgElement("line", { class: "qml-target-cross", x1: 470, y1: ys[1] - 10, x2: 470, y2: ys[1] + 10 }),
+        createSvgElement("line", { class: "qml-entangle-line", x1: 508, y1: ys[1], x2: 508, y2: ys[2] }),
+        createSvgElement("circle", { class: "qml-control", cx: 508, cy: ys[1], r: 5 }),
+        createSvgElement("circle", { class: "qml-target", cx: 508, cy: ys[2], r: 10 }),
+        createSvgElement("line", { class: "qml-target-cross", x1: 498, y1: ys[2], x2: 518, y2: ys[2] }),
+        createSvgElement("line", { class: "qml-target-cross", x1: 508, y1: ys[2] - 10, x2: 508, y2: ys[2] + 10 })
       );
 
-      appendArrow(svg, 170, 153, 208, 153);
-      appendArrow(svg, 574, 153, 608, 153);
-      appendSvgText(svg, "theta parameters are updated by the classical optimizer", {
+      appendCurvedArrow(svg, "M 528 122 C 558 122, 574 136, 604 144", 604, 144, 16);
+      appendCurvedArrow(svg, "M 528 172 C 558 172, 574 158, 604 156", 604, 156, 0);
+      appendCurvedArrow(svg, "M 528 232 C 558 232, 574 178, 604 168", 604, 168, -24);
+      appendSvgText(svg, "trainable gates and entangling links transform the encoded state", {
         class: "qml-flow-note",
         x: 380,
         y: 278,
@@ -2405,29 +2419,55 @@
 
     function renderBridgeMeasureGraphic() {
       const svg = makeDemoSvg("qml-flow-bridge-measure", "Measurement returns classical values");
+      const observables = [
+        { label: "M₁", value: "z₁", x: 274, barHeight: 28 },
+        { label: "M₂", value: "z₂", x: 380, barHeight: 42 },
+        { label: "Mₘ", value: "zₘ", x: 500, barHeight: 34 },
+      ];
 
       appendSvgText(svg, "Measurement", { class: "qml-flow-title", x: 42, y: 36 });
-      appendSvgText(svg, "z_i = <psi|M_i|psi>", {
+      appendSvgText(svg, "zᵢ = ⟨ψ|Mᵢ|ψ⟩", {
         class: "qml-flow-formula",
         x: 382,
         y: 36,
         "text-anchor": "middle",
       });
-      appendBox(svg, { x: 50, y: 126, width: 130, height: 54, label: "|psi(x,theta)>", sublabel: "quantum state" });
+      appendBox(svg, { x: 42, y: 128, width: 140, height: 56, label: "|ψ(x, θ)⟩", sublabel: "model state" });
+      appendSvgText(svg, "observe M₁ ... Mₘ", { class: "qml-flow-formula", x: 404, y: 82, "text-anchor": "middle" });
+      svg.append(createSvgElement("rect", { class: "qml-feature-map-frame", x: 236, y: 92, width: 332, height: 168, rx: 12 }));
+      appendBox(svg, { x: 620, y: 128, width: 118, height: 56, label: "z(x, θ)", sublabel: "classical vector" });
+      appendArrow(svg, 182, 156, 234, 156);
 
-      ["M_1", "M_2", "...", "M_m"].forEach((label, index) => {
-        const x = 266 + index * 82;
-
-        appendBox(svg, { x, y: 94, width: 58, height: 48, label, className: "qml-flow-box qml-measure-box" });
+      observables.forEach((item) => {
+        appendBox(svg, { x: item.x, y: 112, width: 68, height: 44, label: item.label, className: "qml-flow-box qml-measure-box" });
+        appendArrow(svg, item.x + 34, 158, item.x + 34, 182);
         svg.append(
-          createSvgElement("rect", { class: "qml-measure-bar", x: x + 10, y: 178 - index * 12, width: 38, height: 54 + index * 12, rx: 6 })
+          createSvgElement("rect", { class: "qml-measure-track", x: item.x + 12, y: 190, width: 44, height: 44, rx: 7 }),
+          createSvgElement("rect", {
+            class: "qml-measure-bar",
+            x: item.x + 20,
+            y: 224 - item.barHeight,
+            width: 28,
+            height: item.barHeight,
+            rx: 5,
+          })
         );
-        appendArrow(svg, 180, 153, x - 2, 118);
+        appendSvgText(svg, item.value, {
+          class: "qml-flow-small-text",
+          x: item.x + 34,
+          y: 248,
+          "text-anchor": "middle",
+        });
       });
 
-      appendBox(svg, { x: 612, y: 126, width: 96, height: 54, label: "z", sublabel: "classical" });
-      appendArrow(svg, 584, 153, 610, 153);
-      appendSvgText(svg, "measurement turns the quantum state into usable numbers", {
+      [466, 474, 482].forEach((x) => {
+        svg.append(createSvgElement("circle", { class: "qml-ellipsis-dot", cx: x, cy: 134, r: 2.7 }));
+        svg.append(createSvgElement("circle", { class: "qml-ellipsis-dot", cx: x, cy: 212, r: 2.7 }));
+      });
+      appendCurvedArrow(svg, "M 330 218 C 398 284, 560 262, 618 168", 618, 168, -58);
+      appendCurvedArrow(svg, "M 436 218 C 496 254, 582 220, 618 156", 618, 156, -54);
+      appendCurvedArrow(svg, "M 556 218 C 586 202, 600 166, 618 144", 618, 144, -50);
+      appendSvgText(svg, "observables become numeric features the classical code can use", {
         class: "qml-flow-note",
         x: 380,
         y: 278,
@@ -2441,31 +2481,33 @@
       const svg = makeDemoSvg("qml-flow-bridge-update", "Classical optimizer update loop");
 
       appendSvgText(svg, "Classical optimization loop", { class: "qml-flow-title", x: 42, y: 36 });
-      appendSvgText(svg, "theta <- theta - eta grad L", {
+      appendSvgText(svg, "θ ← θ − η ∇θ L", {
         class: "qml-flow-formula",
         x: 410,
         y: 36,
         "text-anchor": "middle",
       });
-      appendBox(svg, { x: 66, y: 126, width: 76, height: 54, label: "z", sublabel: "output" });
-      appendBox(svg, { x: 222, y: 126, width: 104, height: 54, label: "L(theta)", sublabel: "loss" });
-      appendBox(svg, { x: 408, y: 126, width: 116, height: 54, label: "optimizer", sublabel: "classical" });
-      appendBox(svg, { x: 622, y: 126, width: 76, height: 54, label: "theta", sublabel: "new" });
-      appendArrow(svg, 142, 153, 220, 153);
-      appendArrow(svg, 326, 153, 406, 153);
-      appendArrow(svg, 524, 153, 620, 153);
-      svg.append(
-        createSvgElement("path", { class: "qml-feedback-loop", d: "M 660 126 C 668 66, 288 64, 286 124" }),
-        createSvgElement("path", {
-          class: "qml-feedback-loop-head",
-          d: "M 0 0 L -8 -4 L -8 4 Z",
-          transform: "translate(286 124) rotate(92)",
-        })
-      );
-      appendSvgText(svg, "the quantum circuit is evaluated inside a classical training loop", {
+      appendBox(svg, { x: 50, y: 96, width: 116, height: 58, label: "Uθ circuit", sublabel: "evaluate" });
+      appendBox(svg, { x: 216, y: 96, width: 108, height: 58, label: "z(x, θ)", sublabel: "output" });
+      appendBox(svg, { x: 374, y: 96, width: 108, height: 58, label: "L(θ; y)", sublabel: "loss" });
+      appendBox(svg, { x: 538, y: 96, width: 126, height: 58, label: "optimizer", sublabel: "classical" });
+      appendBox(svg, { x: 548, y: 184, width: 106, height: 48, label: "θ", sublabel: "updated" });
+
+      appendArrow(svg, 166, 125, 214, 125);
+      appendArrow(svg, 324, 125, 372, 125);
+      appendArrow(svg, 482, 125, 536, 125);
+      appendArrow(svg, 601, 154, 601, 182);
+      appendCurvedArrow(svg, "M 548 210 C 430 264, 214 262, 110 156", 110, 156, -144, "qml-feedback-loop");
+      appendSvgText(svg, "updated θ returns to the circuit for the next evaluation", {
+        class: "qml-flow-small-text",
+        x: 338,
+        y: 204,
+        "text-anchor": "middle",
+      });
+      appendSvgText(svg, "the optimizer is classical; the circuit is evaluated inside the loop", {
         class: "qml-flow-note",
         x: 380,
-        y: 278,
+        y: 292,
         "text-anchor": "middle",
       });
 

@@ -32,7 +32,7 @@
                 label: "Variational circuit",
                 title: "Train quantum parameters",
                 caption:
-                  "Parameterized gates Uθ act like the trainable layers of the model. The parameters theta are updated from a classical loss.",
+                  "Parameterized gates Uθ act like the trainable layers of the model. The parameters θ are updated from a classical loss.",
               },
               {
                 label: "Measurement",
@@ -44,7 +44,7 @@
                 label: "Optimizer",
                 title: "Close the learning loop",
                 caption:
-                  "A classical optimizer compares predictions with targets, updates theta, and sends new parameters back to the circuit.",
+                  "A classical optimizer compares predictions with targets, updates θ, and sends new parameters back to the circuit.",
               },
             ],
           },
@@ -59,7 +59,7 @@
             "Uφ(x): feature map",
             "Uθ: trainable circuit",
             "M: measurement observable",
-            "theta: trainable parameters",
+            "θ: trainable parameters",
           ],
           intro:
             "The mathematical bridge is simple: encode data as a quantum state, transform it with trainable gates, measure an output, and optimize the parameters using a classical loss.",
@@ -76,7 +76,7 @@
               title: "Apply trainable gates",
               equationHtml: "|&psi;(x, &theta;)&rang; = U<sub>&theta;</sub>|&psi;(x)&rang;",
               copy:
-                "The variational circuit contains parameters theta, similar in role to weights in a classical neural network.",
+                "The variational circuit contains parameters θ, similar in role to weights in a classical neural network.",
             },
             {
               meta: "03 / measure",
@@ -125,23 +125,23 @@
               caption: "The parameterized circuit Uθ is the trainable model core.",
               graphic: "bridge-circuit",
               viewNote:
-                "The parameters theta play the role of trainable weights; entangling gates let qubits interact inside the model.",
+                "The parameters θ play the role of trainable weights; entangling gates let qubits interact inside the model.",
             },
             {
               label: "Measure",
               activeStage: 3,
-              caption: "Measurements convert the quantum state back into classical numbers.",
+              caption: "Measurements estimate observables Mᵢ and return classical numbers zᵢ.",
               graphic: "bridge-measure",
               viewNote:
-                "Those measured values can be used as logits, probabilities, or features for another classical model.",
+                "The vector z(x, θ) can be used as logits, probabilities, or features for another classical model.",
             },
             {
               label: "Update",
               activeStage: 4,
-              caption: "A classical optimizer updates theta and repeats the loop.",
+              caption: "A classical optimizer updates θ and sends the new parameters back to Uθ.",
               graphic: "bridge-update",
               viewNote:
-                "Training remains classical: evaluate the circuit, compute a loss, update parameters, and run the circuit again.",
+                "Training remains classical: evaluate the circuit, compute a loss, update θ, and run the circuit again.",
             },
           ],
         },
