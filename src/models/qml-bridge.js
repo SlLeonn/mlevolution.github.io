@@ -26,13 +26,13 @@
                 label: "Feature map",
                 title: "Encode into a quantum state",
                 caption:
-                  "A feature map U_phi(x) writes the classical features into amplitudes, phases, or rotations of qubits.",
+                  "A feature map Uφ(x) writes the classical features into amplitudes, phases, or rotations of qubits.",
               },
               {
                 label: "Variational circuit",
                 title: "Train quantum parameters",
                 caption:
-                  "Parameterized gates U_theta act like the trainable layers of the model. The parameters theta are updated from a classical loss.",
+                  "Parameterized gates Uθ act like the trainable layers of the model. The parameters theta are updated from a classical loss.",
               },
               {
                 label: "Measurement",
@@ -56,8 +56,8 @@
             "z(x, &theta;) = &langle;&psi;(x, &theta;)| M |&psi;(x, &theta;)&rangle;, &nbsp; L(&theta;) = loss(z, y)",
           terms: [
             "x: classical input",
-            "U_phi(x): feature map",
-            "U_theta: trainable circuit",
+            "Uφ(x): feature map",
+            "Uθ: trainable circuit",
             "M: measurement observable",
             "theta: trainable parameters",
           ],
@@ -105,37 +105,43 @@
             {
               label: "Data",
               activeStage: 0,
-              caption: "Classical ML still starts with features x, labels y, preprocessing, and a task-specific loss.",
-              graphicPlaceholder: "Classical data graphic slot",
-              viewNote: "Reserved for a graphic showing features and labels before quantum encoding.",
+              caption:
+                "QML starts from the same supervised-learning ingredients: features, labels, preprocessing, and a loss.",
+              graphic: "bridge-data",
+              viewNote:
+                "The dataset and objective stay classical. The quantum part only changes how the model represents or transforms the input.",
             },
             {
               label: "Encode",
               activeStage: 1,
-              caption: "The feature map U_phi(x) prepares a quantum state whose structure depends on the input data.",
-              graphicPlaceholder: "Feature map graphic slot",
-              viewNote: "Reserved for a graphic showing how x controls qubit rotations or state preparation.",
+              caption: "A feature map Uφ(x) writes classical features into a quantum state.",
+              graphic: "bridge-encode",
+              viewNote:
+                "The input x controls gates such as rotations, preparing a state |ψ(x)⟩ that carries the encoded data.",
             },
             {
               label: "Circuit",
               activeStage: 2,
-              caption: "The parameterized circuit U_theta is the trainable part of the quantum model.",
-              graphicPlaceholder: "Variational circuit graphic slot",
-              viewNote: "Reserved for a graphic showing trainable gates acting like the model core.",
+              caption: "The parameterized circuit Uθ is the trainable model core.",
+              graphic: "bridge-circuit",
+              viewNote:
+                "The parameters theta play the role of trainable weights; entangling gates let qubits interact inside the model.",
             },
             {
               label: "Measure",
               activeStage: 3,
-              caption: "Measurement produces classical values, so the result can be handled like any model output.",
-              graphicPlaceholder: "Measurement graphic slot",
-              viewNote: "Reserved for a graphic showing expectation values becoming classical outputs.",
+              caption: "Measurements convert the quantum state back into classical numbers.",
+              graphic: "bridge-measure",
+              viewNote:
+                "Those measured values can be used as logits, probabilities, or features for another classical model.",
             },
             {
               label: "Update",
               activeStage: 4,
-              caption: "A classical optimizer updates theta and repeats the loop until the loss improves.",
-              graphicPlaceholder: "Optimizer feedback graphic slot",
-              viewNote: "Reserved for a graphic showing the optimizer sending new parameters back to the circuit.",
+              caption: "A classical optimizer updates theta and repeats the loop.",
+              graphic: "bridge-update",
+              viewNote:
+                "Training remains classical: evaluate the circuit, compute a loss, update parameters, and run the circuit again.",
             },
           ],
         },
