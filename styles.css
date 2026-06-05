@@ -1897,6 +1897,276 @@ h4 {
   color: var(--ink);
 }
 
+.project-flow-strip {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(145px, 1fr));
+  gap: 8px;
+  padding: 12px;
+  border: 1px dashed rgba(31, 41, 45, 0.24);
+  border-radius: var(--radius);
+  background: rgba(255, 255, 255, 0.58);
+}
+
+.project-flow-step {
+  display: grid;
+  gap: 8px;
+  min-width: 0;
+  padding: 12px;
+  border: 1px solid rgba(36, 106, 115, 0.16);
+  border-radius: var(--radius);
+  background: rgba(255, 255, 255, 0.72);
+}
+
+.project-flow-step h4,
+.project-info-card h4,
+.project-snapshot h4 {
+  margin-bottom: 0;
+}
+
+.project-flow-step h4 {
+  font-size: 0.84rem;
+}
+
+.project-flow-step p,
+.project-info-card p,
+.project-snapshot p {
+  margin-bottom: 0;
+  color: var(--muted);
+  font-size: 0.84rem;
+  line-height: 1.45;
+}
+
+.project-notation {
+  display: block;
+  min-height: 30px;
+  padding: 6px 8px;
+  border-radius: var(--radius);
+  color: var(--accent-strong);
+  background: rgba(36, 106, 115, 0.08);
+  font-family: "Latin Modern Math", "STIX Two Math", "Cambria Math", Georgia, "Times New Roman", serif;
+  font-size: 0.92rem;
+  line-height: 1.35;
+  overflow-wrap: anywhere;
+}
+
+.project-analogy-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.project-info-card,
+.project-snapshot {
+  display: grid;
+  gap: 10px;
+  min-width: 0;
+  padding: 14px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: rgba(255, 255, 255, 0.76);
+}
+
+.project-snapshot {
+  border-color: rgba(194, 125, 67, 0.3);
+  background:
+    linear-gradient(rgba(255, 255, 255, 0.78), rgba(255, 255, 255, 0.78)),
+    linear-gradient(135deg, rgba(194, 125, 67, 0.12), rgba(36, 106, 115, 0.08));
+}
+
+.project-snapshot .project-kicker {
+  margin-bottom: 0;
+}
+
+.metrics-panel.is-wide {
+  grid-column: 1 / -1;
+}
+
+.project-final-snapshot {
+  display: grid;
+  gap: 14px;
+}
+
+.project-final-header {
+  display: grid;
+  gap: 8px;
+}
+
+.project-final-header .project-kicker {
+  margin-bottom: 0;
+}
+
+.project-final-header h4 {
+  margin-bottom: 0;
+}
+
+.project-final-header p {
+  margin-bottom: 0;
+  color: var(--muted);
+  line-height: 1.5;
+}
+
+.project-application-grid {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.project-application-button {
+  width: 100%;
+  cursor: pointer;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  transition:
+    border-color 160ms ease,
+    background 160ms ease,
+    box-shadow 160ms ease,
+    transform 160ms ease;
+}
+
+.project-application-button:hover,
+.project-application-button:focus-visible,
+.project-application-button.is-active {
+  border-color: var(--accent);
+  background: rgba(36, 106, 115, 0.08);
+  box-shadow: 0 12px 28px rgba(36, 106, 115, 0.08);
+  outline: none;
+}
+
+.project-application-button.is-active {
+  transform: translateY(-1px);
+}
+
+.project-application-detail {
+  display: grid;
+  gap: 14px;
+  padding: 16px;
+  border: 1px solid rgba(36, 106, 115, 0.18);
+  border-radius: var(--radius);
+  background:
+    linear-gradient(rgba(255, 255, 255, 0.82), rgba(255, 255, 255, 0.82)),
+    linear-gradient(135deg, rgba(36, 106, 115, 0.1), rgba(194, 125, 67, 0.08));
+}
+
+.project-application-detail h4,
+.project-application-detail p {
+  margin-bottom: 0;
+}
+
+.project-application-detail > p {
+  color: var(--muted);
+  line-height: 1.55;
+}
+
+.project-detail-equations {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.project-detail-graphic {
+  overflow-x: auto;
+  padding: 10px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: rgba(255, 255, 255, 0.74);
+}
+
+.project-detail-placeholder {
+  min-height: 180px;
+}
+
+.dru-circuit-svg {
+  display: block;
+  width: 100%;
+  min-width: 760px;
+  height: auto;
+}
+
+.dru-circuit-stage {
+  fill: rgba(36, 106, 115, 0.045);
+  stroke: rgba(36, 106, 115, 0.2);
+  stroke-width: 1.2;
+}
+
+.dru-qubit-line {
+  stroke: rgba(35, 91, 98, 0.58);
+  stroke-width: 2;
+}
+
+.dru-input-node,
+.dru-measure-node {
+  fill: rgba(241, 247, 248, 0.95);
+  stroke: rgba(36, 106, 115, 0.55);
+  stroke-width: 1.4;
+}
+
+.dru-gate {
+  stroke-width: 1.4;
+}
+
+.dru-data-gate {
+  fill: rgba(255, 231, 158, 0.9);
+  stroke: rgba(194, 125, 67, 0.72);
+}
+
+.dru-weight-gate {
+  fill: rgba(226, 238, 232, 0.9);
+  stroke: rgba(36, 106, 115, 0.5);
+}
+
+.dru-entangle-line,
+.dru-ring-link {
+  fill: none;
+  stroke: rgba(194, 125, 67, 0.72);
+  stroke-width: 1.8;
+}
+
+.dru-ring-link {
+  stroke-dasharray: 5 5;
+}
+
+.dru-control {
+  fill: var(--accent-strong);
+}
+
+.dru-target {
+  fill: rgba(255, 255, 255, 0.9);
+  stroke: var(--accent-strong);
+  stroke-width: 1.6;
+}
+
+.dru-target-cross {
+  stroke: var(--accent-strong);
+  stroke-width: 1.3;
+}
+
+.dru-circuit-title,
+.dru-layer-label,
+.dru-circuit-note,
+.dru-circuit-label,
+.dru-input-text,
+.dru-gate-text {
+  fill: var(--ink);
+  font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  font-weight: 800;
+}
+
+.dru-circuit-title,
+.dru-circuit-note {
+  fill: var(--muted);
+  font-size: 14px;
+}
+
+.dru-layer-label,
+.dru-circuit-label,
+.dru-input-text,
+.dru-gate-text {
+  font-size: 12px;
+}
+
+.dru-circuit-note {
+  font-weight: 700;
+}
+
 .qml-demo-visual {
   display: grid;
   gap: 12px;
@@ -1921,7 +2191,9 @@ h4 {
 .qml-demo-graphic-slot {
   display: grid;
   min-height: 230px;
-  place-items: center;
+  overflow-x: auto;
+  align-items: center;
+  justify-items: start;
   border: 1px dashed rgba(31, 41, 45, 0.28);
   border-radius: var(--radius);
   background:
@@ -1931,8 +2203,150 @@ h4 {
 }
 
 .qml-demo-graphic-label {
+  justify-self: center;
+  width: 100%;
   color: var(--muted);
   font-size: 0.92rem;
+  text-align: center;
+}
+
+.qml-flow-svg {
+  display: block;
+  width: 100%;
+  min-width: 700px;
+  height: auto;
+}
+
+.qml-flow-title,
+.qml-flow-text,
+.qml-flow-formula,
+.qml-flow-small-text,
+.qml-flow-note {
+  fill: var(--ink);
+  font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+}
+
+.qml-flow-title {
+  font-size: 17px;
+  font-weight: 800;
+}
+
+.qml-flow-text,
+.qml-flow-formula {
+  font-size: 14px;
+  font-weight: 800;
+}
+
+.qml-flow-formula {
+  fill: var(--accent-strong);
+}
+
+.qml-flow-small-text {
+  fill: var(--muted);
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.qml-flow-note {
+  fill: var(--muted);
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.qml-flow-arrow {
+  stroke: rgba(36, 106, 115, 0.72);
+  stroke-linecap: round;
+  stroke-width: 2;
+}
+
+.qml-flow-arrow-head {
+  fill: rgba(36, 106, 115, 0.72);
+}
+
+.qml-flow-box rect {
+  fill: rgba(255, 255, 255, 0.86);
+  stroke: rgba(36, 106, 115, 0.36);
+  stroke-width: 1.5;
+}
+
+.qml-flow-box.is-terminal rect {
+  fill: rgba(36, 106, 115, 0.1);
+  stroke: var(--accent);
+}
+
+.qml-flow-box text {
+  fill: var(--ink);
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.qml-matrix-cell,
+.qml-label-cell,
+.qml-feature-chip,
+.qml-angle-bar,
+.qml-table-column {
+  stroke-width: 1.2;
+}
+
+.qml-matrix-cell {
+  fill: rgba(255, 255, 255, 0.82);
+  stroke: rgba(36, 106, 115, 0.18);
+}
+
+.qml-matrix-cell.is-highlighted {
+  fill: rgba(36, 106, 115, 0.15);
+  stroke: rgba(36, 106, 115, 0.48);
+}
+
+.qml-matrix-cell.is-muted {
+  fill: rgba(194, 125, 67, 0.08);
+}
+
+.qml-label-cell {
+  fill: rgba(226, 238, 232, 0.95);
+  stroke: rgba(36, 106, 115, 0.35);
+}
+
+.qml-feature-chip {
+  fill: rgba(255, 255, 255, 0.76);
+  stroke: rgba(36, 106, 115, 0.2);
+}
+
+.qml-feature-chip.is-selected {
+  fill: rgba(255, 231, 158, 0.92);
+  stroke: rgba(194, 125, 67, 0.72);
+}
+
+.qml-selection-panel {
+  fill: rgba(255, 255, 255, 0.62);
+  stroke: rgba(36, 106, 115, 0.15);
+  stroke-width: 1.1;
+}
+
+.qml-selected-feature {
+  fill: rgba(255, 231, 158, 0.74);
+  stroke: rgba(194, 125, 67, 0.58);
+  stroke-width: 1.2;
+}
+
+.qml-angle-axis {
+  stroke: rgba(31, 41, 45, 0.18);
+  stroke-width: 1;
+}
+
+.qml-angle-bar {
+  fill: rgba(36, 106, 115, 0.22);
+  stroke: rgba(36, 106, 115, 0.42);
+}
+
+.qml-table-column {
+  fill: rgba(36, 106, 115, 0.16);
+  stroke: rgba(36, 106, 115, 0.3);
+}
+
+.qml-table-column.is-quantum {
+  fill: rgba(255, 231, 158, 0.9);
+  stroke: rgba(194, 125, 67, 0.62);
 }
 
 .qml-project-buttons {
@@ -2019,7 +2433,9 @@ h4 {
 
   .workspace-grid,
   .qml-project-buttons,
-  .qml-flow-map {
+  .qml-flow-map,
+  .project-analogy-grid,
+  .project-detail-equations {
     grid-template-columns: 1fr;
   }
 

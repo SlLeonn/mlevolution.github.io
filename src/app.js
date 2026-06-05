@@ -1230,12 +1230,66 @@
 
     const kicker = createElement("span", "project-kicker", project.kicker || "QML project");
     const title = createElement("h3", "", project.title);
-    const summary = createElement("p", "project-summary", project.summary || project.placeholder);
-    const relation = createElement("p", "project-relation", project.relation || "Classical connection placeholder");
-    const placeholder = createElement("div", "placeholder-block");
+    const architecture = project.architecture || null;
+    const summary = createElement(
+      "p",
+      "project-summary",
+      architecture?.summary || project.summary || project.placeholder
+    );
+    const relation = createElement(
+      "p",
+      "project-relation",
+      architecture?.relation || project.relation || "Classical connection placeholder"
+    );
 
-    placeholder.append(createElement("p", "", project.placeholder || "Project architecture placeholder"));
-    shell.append(kicker, title, summary, relation, placeholder);
+    shell.append(back, kicker, title, summary, relation);
+
+    if (architecture) {
+      const flow = createElement("div", "project-flow-strip");
+      const cards = createElement("div", "project-analogy-grid");
+
+      (architecture.flow || []).forEach((step, index) => {
+        const item = createElement("article", "project-flow-step");
+        const number = createElement("span", "qml-flow-number", pad(index + 1));
+        const stepTitle = createElement("h4", "", step.label);
+        const detail = createElement("p", "", step.detail);
+        const notation = createElement("span", "project-notation");
+
+        notation.innerHTML = step.notationHtml || step.notation || "";
+        item.append(number, stepTitle, notation, detail);
+        flow.append(item);
+      });
+
+      (architecture.cards || []).forEach((card) => {
+        const item = createElement("article", "project-info-card");
+        const cardTitle = createElement("h4", "", card.title);
+        const copy = createElement("p", "", card.copy);
+
+        item.append(cardTitle, copy);
+        cards.append(item);
+      });
+
+      shell.append(flow, cards);
+
+      if (architecture.snapshot) {
+        const snapshot = createElement("aside", "project-snapshot");
+
+        snapshot.append(
+          createElement("span", "project-kicker", architecture.snapshot.kicker),
+          createElement("h4", "", architecture.snapshot.title)
+        );
+        architecture.snapshot.points.forEach((point) => {
+          snapshot.append(createElement("p", "", point));
+        });
+        shell.append(snapshot);
+      }
+    } else {
+      const placeholder = createElement("div", "placeholder-block");
+
+      placeholder.append(createElement("p", "", project.placeholder || "Project architecture placeholder"));
+      shell.append(placeholder);
+    }
+
     elements.architectureView.replaceChildren(shell);
   }
 
@@ -2101,6 +2155,365 @@
     graphicSlot.append(graphicLabel);
     visual.append(visualHeader, graphicSlot);
 
+    function makeDemoSvg(className, label, viewBox = "0 0 760 300") {
+      return createSvgElement("svg", {
+        class: `qml-flow-svg ${className}`,
+        viewBox,
+        role: "img",
+        "aria-label": label,
+      });
+    }
+
+    function appendSvgText(parent, text, attrs = {}) {
+      const node = createSvgElement("text", attrs);
+
+      node.textContent = text;
+      parent.append(node);
+      return node;
+    }
+
+    function appendArrow(svg, x1, y1, x2, y2, className = "qml-flow-arrow") {
+      const angle = (Math.atan2(y2 - y1, x2 - x1) * 180) / Math.PI;
+
+      svg.append(
+        createSvgElement("line", {
+          class: className,
+          x1,
+          y1,
+          x2,
+          y2,
+        }),
+        createSvgElement("path", {
+          class: `${className}-head`,
+          d: "M 0 0 L -8 -4 L -8 4 Z",
+          transform: `translate(${x2} ${y2}) rotate(${angle})`,
+        })
+      );
+    }
+
+    function appendBox(svg, { x, y, width, height, label, className = "qml-flow-box", sublabel = "" }) {
+      const group = createSvgElement("g", { class: className, transform: `translate(${x} ${y})` });
+
+      group.append(
+        createSvgElement("rect", { width, height, rx: 8 }),
+        createSvgElement("text", { x: width / 2, y: height / 2 + (sublabel ? -2 : 5), "text-anchor": "middle" })
+      );
+      group.querySelector("text").textContent = label;
+
+      if (sublabel) {
+        appendSvgText(group, sublabel, {
+          class: "qml-flow-small-text",
+          x: width / 2,
+          y: height / 2 + 18,
+          "text-anchor": "middle",
+        });
+      }
+
+      svg.append(group);
+      return group;
+    }
+
+    function renderFeatureMatrixGraphic() {
+      const svg = makeDemoSvg("qml-flow-feature-matrix", "Classical feature matrix");
+      const startX = 112;
+      const startY = 78;
+      const cell = 28;
+      const rows = 5;
+      const cols = 8;
+
+      appendSvgText(svg, "Classical dataset", { class: "qml-flow-title", x: 42, y: 36 });
+      appendSvgText(svg, "X in R^(N x p)", { class: "qml-flow-formula", x: 340, y: 36, "text-anchor": "middle" });
+      appendSvgText(svg, "y in {0,1}^N", { class: "qml-flow-formula", x: 628, y: 36, "text-anchor": "middle" });
+
+      for (let row = 0; row < rows; row += 1) {
+        for (let col = 0; col < cols; col += 1) {
+          svg.append(
+            createSvgElement("rect", {
+              class: `qml-matrix-cell${row === 2 ? " is-highlighted" : ""}${col >= 5 ? " is-muted" : ""}`,
+              x: startX + col * cell,
+              y: startY + row * cell,
+              width: cell - 3,
+              height: cell - 3,
+              rx: 4,
+            })
+          );
+        }
+        appendSvgText(svg, row === 2 ? "x_n" : `x_${row + 1}`, {
+          class: "qml-flow-small-text",
+          x: 74,
+          y: startY + row * cell + 17,
+        });
+      }
+
+      ["feature 1", "feature 2", "...", "feature p"].forEach((label, index) => {
+        appendSvgText(svg, label, {
+          class: "qml-flow-small-text",
+          x: [112, 170, 252, 306][index],
+          y: 242,
+          "text-anchor": "middle",
+        });
+      });
+
+      [0, 1, 0, 1, 0].forEach((value, index) => {
+        const y = startY + index * cell;
+
+        svg.append(createSvgElement("rect", { class: "qml-label-cell", x: 600, y, width: 34, height: 25, rx: 5 }));
+        appendSvgText(svg, String(value), {
+          class: "qml-flow-text",
+          x: 617,
+          y: y + 17,
+          "text-anchor": "middle",
+        });
+      });
+
+      appendArrow(svg, 384, 148, 584, 148);
+      appendSvgText(svg, "samples stay classical before encoding", {
+        class: "qml-flow-note",
+        x: 384,
+        y: 278,
+        "text-anchor": "middle",
+      });
+
+      return svg;
+    }
+
+    function renderSelectScaleGraphic() {
+      const svg = makeDemoSvg("qml-flow-select-scale", "Feature selection and angular scaling");
+      const xs = [74, 112, 150, 188, 226, 264, 302, 340];
+      const selected = new Set([1, 3, 6]);
+      const angleHeights = [64, 96, 44, 78];
+
+      appendSvgText(svg, "Select q features", { class: "qml-flow-title", x: 46, y: 34 });
+      appendSvgText(svg, "S: R^p -> R^q", { class: "qml-flow-formula", x: 244, y: 64, "text-anchor": "middle" });
+      appendSvgText(svg, "Scale to angles", { class: "qml-flow-title", x: 520, y: 34 });
+      appendSvgText(svg, "A: R^q -> [-pi, pi]^q", { class: "qml-flow-formula", x: 626, y: 64, "text-anchor": "middle" });
+
+      xs.forEach((x, index) => {
+        svg.append(
+          createSvgElement("rect", {
+            class: `qml-feature-chip${selected.has(index) ? " is-selected" : ""}`,
+            x,
+            y: 116,
+            width: 28,
+            height: 68,
+            rx: 6,
+          })
+        );
+        appendSvgText(svg, index === 7 ? "p" : String(index + 1), {
+          class: "qml-flow-small-text",
+          x: x + 14,
+          y: 206,
+          "text-anchor": "middle",
+        });
+      });
+
+      appendBox(svg, { x: 392, y: 118, width: 70, height: 62, label: "S", sublabel: "select" });
+      appendArrow(svg, 356, 150, 390, 150);
+      appendArrow(svg, 462, 150, 506, 150);
+
+      angleHeights.forEach((height, index) => {
+        const x = 532 + index * 44;
+        const y = 198 - height;
+
+        svg.append(
+          createSvgElement("line", { class: "qml-angle-axis", x1: x + 14, y1: 86, x2: x + 14, y2: 206 }),
+          createSvgElement("rect", { class: "qml-angle-bar", x, y, width: 28, height, rx: 5 })
+        );
+        appendSvgText(svg, `q${index + 1}`, {
+          class: "qml-flow-small-text",
+          x: x + 14,
+          y: 226,
+          "text-anchor": "middle",
+        });
+      });
+
+      appendSvgText(svg, "x^q = A(S(x))", {
+        class: "qml-flow-note",
+        x: 620,
+        y: 248,
+        "text-anchor": "middle",
+      });
+
+      appendSvgText(svg, "selected values become valid gate angles", {
+        class: "qml-flow-note",
+        x: 386,
+        y: 278,
+        "text-anchor": "middle",
+      });
+
+      return svg;
+    }
+
+    function renderDruMapGraphic() {
+      const svg = makeDemoSvg("qml-flow-dru-map", "DataReuploading feature map");
+      const blocks = [
+        { label: "x^q", sublabel: "angles", x: 50, y: 125, width: 76, height: 54 },
+        { label: "U_enc(x)", sublabel: "encode", x: 170, y: 88, width: 104, height: 54 },
+        { label: "U_train(theta_1)", sublabel: "weights", x: 170, y: 174, width: 128, height: 54 },
+        { label: "U_enc(x)", sublabel: "reupload", x: 354, y: 88, width: 104, height: 54 },
+        { label: "U_train(theta_l)", sublabel: "weights", x: 354, y: 174, width: 128, height: 54 },
+        { label: "...", sublabel: "L layers", x: 526, y: 125, width: 70, height: 54 },
+        { label: "z(x)", sublabel: "measure", x: 648, y: 125, width: 76, height: 54 },
+      ];
+
+      appendSvgText(svg, "DRU feature map", { class: "qml-flow-title", x: 42, y: 36 });
+      appendSvgText(svg, "phi_theta: R^q -> R^m", {
+        class: "qml-flow-formula",
+        x: 380,
+        y: 36,
+        "text-anchor": "middle",
+      });
+
+      blocks.forEach((block, index) => {
+        appendBox(svg, {
+          ...block,
+          className: `qml-flow-box${index === 0 || index === blocks.length - 1 ? " is-terminal" : ""}`,
+        });
+      });
+
+      [
+        [126, 152, 170, 115],
+        [126, 152, 170, 201],
+        [298, 201, 354, 201],
+        [274, 115, 354, 115],
+        [482, 201, 526, 152],
+        [458, 115, 526, 152],
+        [596, 152, 648, 152],
+      ].forEach(([x1, y1, x2, y2]) => appendArrow(svg, x1, y1, x2, y2));
+
+      appendSvgText(svg, "the same classical input is injected again between trainable blocks", {
+        class: "qml-flow-note",
+        x: 380,
+        y: 278,
+        "text-anchor": "middle",
+      });
+
+      return svg;
+    }
+
+    function renderConcatenateGraphic() {
+      const svg = makeDemoSvg("qml-flow-concat", "Feature concatenation");
+
+      appendSvgText(svg, "Augment the classical table", { class: "qml-flow-title", x: 42, y: 36 });
+      appendBox(svg, { x: 82, y: 106, width: 148, height: 70, label: "x", sublabel: "original features" });
+      appendBox(svg, { x: 82, y: 194, width: 148, height: 70, label: "z(x)", sublabel: "DRU measurements" });
+      appendBox(svg, { x: 342, y: 144, width: 150, height: 78, label: "u = [x; z(x)]", sublabel: "hybrid vector" });
+
+      for (let index = 0; index < 7; index += 1) {
+        svg.append(
+          createSvgElement("rect", {
+            class: `qml-table-column${index >= 4 ? " is-quantum" : ""}`,
+            x: 588 + index * 18,
+            y: 98,
+            width: 14,
+            height: 132,
+            rx: 3,
+          })
+        );
+      }
+      appendSvgText(svg, "augmented feature table", {
+        class: "qml-flow-text",
+        x: 650,
+        y: 258,
+        "text-anchor": "middle",
+      });
+
+      appendArrow(svg, 230, 141, 340, 172);
+      appendArrow(svg, 230, 229, 340, 194);
+      appendArrow(svg, 492, 183, 570, 164);
+      appendSvgText(svg, "after measurement, z(x) is ordinary numeric data", {
+        class: "qml-flow-note",
+        x: 380,
+        y: 278,
+        "text-anchor": "middle",
+      });
+
+      return svg;
+    }
+
+    function renderClassicalLearnerGraphic() {
+      const svg = makeDemoSvg("qml-flow-learner", "Classical learner over hybrid features");
+
+      appendSvgText(svg, "Classical decision stage", { class: "qml-flow-title", x: 42, y: 36 });
+      appendBox(svg, { x: 54, y: 134, width: 92, height: 58, label: "u", sublabel: "[x; z]" });
+      appendBox(svg, { x: 210, y: 94, width: 126, height: 58, label: "a^T z + b", sublabel: "direct head" });
+      appendBox(svg, { x: 210, y: 178, width: 126, height: 58, label: "sum f_m(u)", sublabel: "ensemble head" });
+      appendBox(svg, { x: 424, y: 134, width: 100, height: 58, label: "h", sublabel: "logit" });
+      appendBox(svg, { x: 610, y: 134, width: 100, height: 58, label: "p = sigma(h)", sublabel: "probability" });
+
+      appendArrow(svg, 146, 163, 208, 123);
+      appendArrow(svg, 146, 163, 208, 207);
+      appendArrow(svg, 336, 123, 422, 163);
+      appendArrow(svg, 336, 207, 422, 163);
+      appendArrow(svg, 524, 163, 608, 163);
+
+      appendSvgText(svg, "the learner is classical; DRU supplies the measured representation", {
+        class: "qml-flow-note",
+        x: 380,
+        y: 278,
+        "text-anchor": "middle",
+      });
+
+      return svg;
+    }
+
+    function renderControlsGraphic() {
+      const svg = makeDemoSvg("qml-flow-controls", "Feature-map controls");
+      const items = [
+        { label: "[x]", sublabel: "baseline" },
+        { label: "[x; PCA(x)]", sublabel: "linear" },
+        { label: "[x; Poly(x)]", sublabel: "deterministic nonlinear" },
+        { label: "[x; RBF(x)]", sublabel: "random nonlinear" },
+        { label: "[x; DRU_0(x)]", sublabel: "untrained DRU" },
+        { label: "[x; DRU_theta(x)]", sublabel: "trained DRU" },
+      ];
+
+      appendSvgText(svg, "Compare feature maps fairly", { class: "qml-flow-title", x: 42, y: 36 });
+      items.forEach((item, index) => {
+        const x = 62 + (index % 3) * 222;
+        const y = 84 + Math.floor(index / 3) * 98;
+
+        appendBox(svg, {
+          x,
+          y,
+          width: 170,
+          height: 66,
+          label: item.label,
+          sublabel: item.sublabel,
+          className: `qml-flow-box${index === 5 ? " is-terminal" : ""}`,
+        });
+      });
+
+      appendSvgText(svg, "a DRU gain is meaningful only when it beats strong classical feature controls", {
+        class: "qml-flow-note",
+        x: 380,
+        y: 278,
+        "text-anchor": "middle",
+      });
+
+      return svg;
+    }
+
+    function renderFlowGraphic(state) {
+      const graphicRenderers = {
+        "feature-matrix": renderFeatureMatrixGraphic,
+        "select-scale": renderSelectScaleGraphic,
+        "dru-map": renderDruMapGraphic,
+        "concat-features": renderConcatenateGraphic,
+        "classical-learner": renderClassicalLearnerGraphic,
+        "feature-controls": renderControlsGraphic,
+      };
+      const renderer = graphicRenderers[state.graphic];
+
+      if (!renderer) {
+        graphicLabel.textContent = state.graphicPlaceholder || `${state.label} graphic slot`;
+        graphicSlot.replaceChildren(graphicLabel);
+        return;
+      }
+
+      graphicSlot.replaceChildren(renderer());
+    }
+
     panel.states.forEach((state, index) => {
       const button = createElement("button", "demo-button", state.label);
 
@@ -2120,7 +2533,7 @@
 
       visualNumber.textContent = pad(stateIndex + 1);
       visualTitle.textContent = state.label;
-      graphicLabel.textContent = state.graphicPlaceholder || `${state.label} graphic slot`;
+      renderFlowGraphic(state);
       graphicSlot.dataset.stage = String(state.activeStage);
       caption.textContent = state.viewNote || "Graphic slot reserved for this step.";
     }
@@ -2400,6 +2813,219 @@
       return;
     }
 
+    const metricsPanel = elements.metricsView.closest(".metrics-panel");
+
+    if (metricsPanel) {
+      metricsPanel.classList.toggle("is-wide", Boolean(panel.isWide));
+    }
+
+    if (panel.snapshot) {
+      const content = createElement("div", "project-final-snapshot");
+      const header = createElement("div", "project-final-header");
+      const cards = createElement("div", "project-analogy-grid project-application-grid");
+      const detail = createElement("section", "project-application-detail");
+      const list = createElement("div", "note-list");
+      const snapshotCards = panel.snapshot.cards || [];
+
+      header.append(
+        createElement("span", "project-kicker", panel.snapshot.kicker || panel.label),
+        createElement("h4", "", panel.snapshot.title || panel.title)
+      );
+
+      if (panel.snapshot.intro) {
+        header.append(createElement("p", "", panel.snapshot.intro));
+      }
+
+      function renderDruCircuitGraphic() {
+        const svg = createSvgElement("svg", {
+          class: "dru-circuit-svg",
+          viewBox: "0 0 920 360",
+          role: "img",
+          "aria-label": "DataReuploading circuit diagram",
+        });
+        const qubits = [
+          { label: "q0", y: 86 },
+          { label: "q1", y: 122 },
+          { label: "q2", y: 158 },
+          { label: "q3", y: 194 },
+          { label: "q4", y: 230 },
+          { label: "q5", y: 266 },
+        ];
+        const layerX = [318, 492, 666];
+
+        svg.append(
+          createSvgElement("text", { class: "dru-circuit-title", x: 70, y: 38 }),
+          createSvgElement("text", { class: "dru-circuit-title", x: 316, y: 38 }),
+          createSvgElement("text", { class: "dru-circuit-title", x: 704, y: 38 })
+        );
+        svg.querySelectorAll(".dru-circuit-title")[0].textContent = "selected classical inputs";
+        svg.querySelectorAll(".dru-circuit-title")[1].textContent = "L reuploading layers";
+        svg.querySelectorAll(".dru-circuit-title")[2].textContent = "measured features";
+
+        svg.append(
+          createSvgElement("rect", { class: "dru-circuit-stage", x: 52, y: 58, width: 172, height: 248, rx: 10 }),
+          createSvgElement("rect", { class: "dru-circuit-stage", x: 262, y: 58, width: 474, height: 248, rx: 10 }),
+          createSvgElement("rect", { class: "dru-circuit-stage", x: 770, y: 58, width: 104, height: 248, rx: 10 })
+        );
+
+        qubits.forEach((qubit, index) => {
+          svg.append(
+            createSvgElement("text", { class: "dru-circuit-label", x: 72, y: qubit.y + 5 }),
+            createSvgElement("line", {
+              class: "dru-qubit-line",
+              x1: 132,
+              y1: qubit.y,
+              x2: 822,
+              y2: qubit.y,
+            }),
+            createSvgElement("rect", { class: "dru-input-node", x: 96, y: qubit.y - 13, width: 52, height: 26, rx: 7 }),
+            createSvgElement("text", { class: "dru-input-text", x: 122, y: qubit.y + 5, "text-anchor": "middle" })
+          );
+          svg.querySelectorAll(".dru-circuit-label")[index].textContent = qubit.label;
+          svg.querySelectorAll(".dru-input-text")[index].textContent = `x${index}`;
+        });
+
+        layerX.forEach((x, layerIndex) => {
+          svg.append(createSvgElement("text", { class: "dru-layer-label", x: x + 54, y: 72, "text-anchor": "middle" }));
+          svg.querySelectorAll(".dru-layer-label")[layerIndex].textContent = `layer ${layerIndex + 1}`;
+
+          qubits.forEach((qubit) => {
+            const local = createSvgElement("g", { transform: `translate(${x} ${qubit.y - 14})` });
+
+            local.append(
+              createSvgElement("rect", { class: "dru-gate dru-data-gate", width: 58, height: 28, rx: 6 }),
+              createSvgElement("text", { class: "dru-gate-text", x: 29, y: 18, "text-anchor": "middle" }),
+              createSvgElement("rect", { class: "dru-gate dru-weight-gate", x: 66, width: 44, height: 28, rx: 6 }),
+              createSvgElement("text", { class: "dru-gate-text", x: 88, y: 18, "text-anchor": "middle" })
+            );
+            local.querySelectorAll(".dru-gate-text")[0].textContent = "Rot(x)";
+            local.querySelectorAll(".dru-gate-text")[1].textContent = "Rot(w)";
+            svg.append(local);
+          });
+
+          qubits.slice(0, -1).forEach((qubit, index) => {
+            const next = qubits[index + 1];
+            const cx = x + 130;
+
+            svg.append(
+              createSvgElement("line", { class: "dru-entangle-line", x1: cx, y1: qubit.y, x2: cx, y2: next.y }),
+              createSvgElement("circle", { class: "dru-control", cx, cy: qubit.y, r: 4 }),
+              createSvgElement("circle", { class: "dru-target", cx, cy: next.y, r: 8 }),
+              createSvgElement("line", { class: "dru-target-cross", x1: cx - 6, y1: next.y, x2: cx + 6, y2: next.y }),
+              createSvgElement("line", { class: "dru-target-cross", x1: cx, y1: next.y - 6, x2: cx, y2: next.y + 6 })
+            );
+          });
+
+          svg.append(
+            createSvgElement("path", {
+              class: "dru-ring-link",
+              d: `M ${x + 130} ${qubits[5].y} C ${x + 164} 314, ${x + 164} 46, ${x + 130} ${qubits[0].y}`,
+            })
+          );
+        });
+
+        qubits.forEach((qubit, index) => {
+          svg.append(
+            createSvgElement("rect", { class: "dru-measure-node", x: 792, y: qubit.y - 13, width: 46, height: 26, rx: 7 }),
+            createSvgElement("text", { class: "dru-input-text", x: 815, y: qubit.y + 5, "text-anchor": "middle" })
+          );
+          svg.querySelectorAll(".dru-input-text")[qubits.length + index].textContent = index < 3 ? "<Z>" : "<ZZ>";
+        });
+
+        svg.append(createSvgElement("text", { class: "dru-circuit-note", x: 460, y: 330, "text-anchor": "middle" }));
+        svg.querySelector(".dru-circuit-note").textContent =
+          "Rot(x) reuploads selected data; Rot(w) is trainable; CNOT links create ring interactions before measurement.";
+
+        return svg;
+      }
+
+      function renderSnapshotDetail(card, index) {
+        const title = createElement("h4", "", card.detailTitle || card.title);
+        const intro = createElement("p", "", card.detailCopy || card.copy);
+        const equations = createElement("div", "project-detail-equations");
+
+        (card.detailEquations || []).forEach((entry) => {
+          const equationCard = createElement("article", "math-step");
+          const meta = createElement("span", "math-step-meta", entry.meta || "");
+          const equationTitle = createElement("h4", "", entry.title || "");
+          const equation = createElement("div", "step-equation");
+          const copy = createElement("p", "", entry.copy || "");
+
+          equation.innerHTML = entry.equationHtml || "";
+          equationCard.append(meta, equationTitle, equation, copy);
+          equations.append(equationCard);
+        });
+
+        detail.replaceChildren(title, intro);
+
+        if (card.graphic === "dru-circuit") {
+          const graphic = createElement("div", "project-detail-graphic");
+
+          graphic.append(renderDruCircuitGraphic());
+          detail.append(graphic);
+        }
+
+        if (card.graphicPlaceholder && card.graphic !== "dru-circuit") {
+          const placeholder = createElement("div", "qml-demo-graphic-slot project-detail-placeholder");
+
+          placeholder.append(createElement("span", "qml-demo-graphic-label", card.graphicPlaceholder));
+          detail.append(placeholder);
+        }
+
+        if (card.detailEquations && card.detailEquations.length) {
+          detail.append(equations);
+        }
+
+        cards.querySelectorAll("button").forEach((button, buttonIndex) => {
+          button.classList.toggle("is-active", buttonIndex === index);
+          button.setAttribute("aria-pressed", String(buttonIndex === index));
+        });
+      }
+
+      snapshotCards.forEach((card, index) => {
+        const item = createElement("button", "project-info-card project-application-button");
+        const cardTitle = createElement("h4", "", card.title);
+        const copy = createElement("p", "", card.copy);
+
+        item.type = "button";
+        item.setAttribute("aria-pressed", "false");
+        item.addEventListener("click", () => renderSnapshotDetail(card, index));
+        item.append(cardTitle);
+        if (card.equationHtml) {
+          const equation = createElement("div", "step-equation");
+
+          equation.innerHTML = card.equationHtml;
+          item.append(equation);
+        }
+        item.append(copy);
+        cards.append(item);
+      });
+
+      if (panel.snapshot.formulaHtml) {
+        const formula = createElement("div", "formula formula-hero");
+
+        formula.innerHTML = panel.snapshot.formulaHtml;
+        content.append(header, cards, detail, formula);
+      } else {
+        content.append(header, cards, detail);
+      }
+
+      (panel.points || []).forEach((point) => {
+        list.append(createElement("span", "note-chip", point));
+      });
+
+      if (panel.points && panel.points.length) {
+        content.append(list);
+      }
+
+      elements.metricsView.classList.add("is-content-view");
+      elements.metricsView.replaceChildren(content);
+      if (snapshotCards.length) {
+        renderSnapshotDetail(snapshotCards[0], 0);
+      }
+      return;
+    }
+
     if (!panel.points.length) {
       elements.metricsView.classList.remove("is-content-view");
       elements.metricsView.replaceChildren(
@@ -2608,6 +3234,8 @@
   }
 
   function createProjectPanels(project) {
+    const panels = project.panels || {};
+
     return {
       architecture: {
         summary: project.summary || project.placeholder || "QML project workspace.",
@@ -2615,6 +3243,7 @@
           type: "qml-project-detail",
           projectId: project.id,
         },
+        ...panels.architecture,
       },
       math: {
         label: project.mathLabel || "Project math",
@@ -2622,6 +3251,7 @@
         terms: [],
         note: "",
         placeholder: project.mathPlaceholder || "Project math placeholder",
+        ...panels.math,
       },
       demo: {
         label: project.demoLabel || "Project interactive view",
@@ -2630,16 +3260,19 @@
         description: project.demoDescription || "Interactive project view placeholder.",
         states: [],
         placeholder: project.demoPlaceholder || "Project interactive view placeholder",
+        ...panels.demo,
       },
       controls: {
         label: project.controlsLabel || "Project sections",
         items: project.sections || ["Architecture", "Math", "Experiment"],
+        ...panels.controls,
       },
       metrics: {
         label: project.metricsLabel || "Project status",
         title: project.metricsTitle || "Next content pass",
         points: project.points || ["Architecture pending", "Math pending", "Interactive demo pending"],
         placeholder: "Project status placeholder",
+        ...panels.metrics,
       },
     };
   }
