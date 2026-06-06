@@ -2516,59 +2516,72 @@
 
     function renderFeatureMatrixGraphic() {
       const svg = makeDemoSvg("qml-flow-feature-matrix", "Classical feature matrix");
-      const startX = 112;
-      const startY = 78;
+      const startX = 86;
+      const startY = 100;
       const cell = 28;
-      const rows = 5;
-      const cols = 8;
+      const gap = 6;
+      const rows = 4;
+      const cols = 5;
 
-      appendSvgText(svg, "Classical dataset", { class: "qml-flow-title", x: 42, y: 36 });
-      appendSvgText(svg, "X in R^(N x p)", { class: "qml-flow-formula", x: 340, y: 36, "text-anchor": "middle" });
-      appendSvgText(svg, "y in {0,1}^N", { class: "qml-flow-formula", x: 628, y: 36, "text-anchor": "middle" });
+      appendSvgText(svg, "Supervised dataset", { class: "qml-flow-title", x: 42, y: 36 });
+      appendSvgText(svg, "Feature table X", { class: "qml-flow-formula", x: 180, y: 66, "text-anchor": "middle" });
+      appendSvgText(svg, "Targets y", { class: "qml-flow-formula", x: 382, y: 66, "text-anchor": "middle" });
+      appendSvgText(svg, "D = {(xₙ, yₙ)}", { class: "qml-flow-formula", x: 610, y: 66, "text-anchor": "middle" });
+
+      ["f₁", "f₂", "f₃", "...", "fₚ"].forEach((label, index) => {
+        appendSvgText(svg, label, {
+          class: "qml-flow-small-text",
+          x: startX + index * (cell + gap) + cell / 2,
+          y: startY - 12,
+          "text-anchor": "middle",
+        });
+      });
 
       for (let row = 0; row < rows; row += 1) {
+        appendSvgText(svg, ["x₁", "x₂", "...", "x_N"][row], {
+          class: "qml-flow-small-text",
+          x: startX - 24,
+          y: startY + row * (cell + gap) + 18,
+          "text-anchor": "middle",
+        });
+
         for (let col = 0; col < cols; col += 1) {
           svg.append(
             createSvgElement("rect", {
-              class: `qml-matrix-cell${row === 2 ? " is-highlighted" : ""}${col >= 5 ? " is-muted" : ""}`,
-              x: startX + col * cell,
-              y: startY + row * cell,
-              width: cell - 3,
-              height: cell - 3,
+              class: "qml-matrix-cell",
+              x: startX + col * (cell + gap),
+              y: startY + row * (cell + gap),
+              width: cell,
+              height: cell,
               rx: 4,
             })
           );
         }
-        appendSvgText(svg, row === 2 ? "x_n" : `x_${row + 1}`, {
-          class: "qml-flow-small-text",
-          x: 74,
-          y: startY + row * cell + 17,
-        });
       }
 
-      ["feature 1", "feature 2", "...", "feature p"].forEach((label, index) => {
-        appendSvgText(svg, label, {
-          class: "qml-flow-small-text",
-          x: [112, 170, 252, 306][index],
-          y: 242,
-          "text-anchor": "middle",
+      ["y₁", "y₂", "", "y_N"].forEach((value, index) => {
+        const y = startY + index * (cell + gap);
+
+        if (value) {
+          svg.append(createSvgElement("rect", { class: "qml-label-cell", x: 362, y, width: 40, height: cell, rx: 5 }));
+          appendSvgText(svg, value, {
+            class: "qml-flow-small-text",
+            x: 382,
+            y: y + 18,
+            "text-anchor": "middle",
+          });
+          return;
+        }
+
+        [y + 8, y + 14, y + 20].forEach((dotY) => {
+          svg.append(createSvgElement("circle", { class: "qml-ellipsis-dot", cx: 382, cy: dotY, r: 2.6 }));
         });
       });
 
-      [0, 1, 0, 1, 0].forEach((value, index) => {
-        const y = startY + index * cell;
-
-        svg.append(createSvgElement("rect", { class: "qml-label-cell", x: 600, y, width: 34, height: 25, rx: 5 }));
-        appendSvgText(svg, String(value), {
-          class: "qml-flow-text",
-          x: 617,
-          y: y + 17,
-          "text-anchor": "middle",
-        });
-      });
-
-      appendArrow(svg, 384, 148, 584, 148);
-      appendSvgText(svg, "samples stay classical before encoding", {
+      appendBox(svg, { x: 548, y: 122, width: 128, height: 64, label: "D", sublabel: "paired samples" });
+      appendCurvedArrow(svg, "M 260 170 C 340 286, 482 290, 548 168", 548, 168, -62);
+      appendCurvedArrow(svg, "M 404 150 C 462 150, 498 162, 546 168", 546, 168, 8);
+      appendSvgText(svg, "classical samples and targets are paired before quantum encoding", {
         class: "qml-flow-note",
         x: 384,
         y: 278,
@@ -2580,62 +2593,69 @@
 
     function renderSelectScaleGraphic() {
       const svg = makeDemoSvg("qml-flow-select-scale", "Feature selection and angular scaling");
-      const xs = [74, 112, 150, 188, 226, 264, 302, 340];
-      const selected = new Set([1, 3, 6]);
-      const angleHeights = [64, 96, 44, 78];
+      const xs = [64, 108, 184];
+      const selected = new Set([0, 1, 2]);
+      const angleHeights = [44, 78, 54];
 
       appendSvgText(svg, "Select q features", { class: "qml-flow-title", x: 46, y: 34 });
-      appendSvgText(svg, "S: R^p -> R^q", { class: "qml-flow-formula", x: 244, y: 64, "text-anchor": "middle" });
-      appendSvgText(svg, "Scale to angles", { class: "qml-flow-title", x: 520, y: 34 });
-      appendSvgText(svg, "A: R^q -> [-pi, pi]^q", { class: "qml-flow-formula", x: 626, y: 64, "text-anchor": "middle" });
+      appendSvgText(svg, "S: R^p → R^q", { class: "qml-flow-formula", x: 260, y: 64, "text-anchor": "middle" });
+      appendSvgText(svg, "Scale to gate angles", { class: "qml-flow-title", x: 548, y: 34 });
+      appendSvgText(svg, "A: R^q → [-π, π]^q", { class: "qml-flow-formula", x: 626, y: 64, "text-anchor": "middle" });
 
       xs.forEach((x, index) => {
         svg.append(
           createSvgElement("rect", {
             class: `qml-feature-chip${selected.has(index) ? " is-selected" : ""}`,
             x,
-            y: 116,
+            y: 118,
             width: 28,
-            height: 68,
+            height: 66,
             rx: 6,
           })
         );
-        appendSvgText(svg, index === 7 ? "p" : String(index + 1), {
+        appendSvgText(svg, ["j₁", "j₂", "j_q"][index], {
           class: "qml-flow-small-text",
           x: x + 14,
           y: 206,
           "text-anchor": "middle",
         });
       });
+      [152, 160, 168].forEach((x) => {
+        svg.append(createSvgElement("circle", { class: "qml-ellipsis-dot", cx: x, cy: 151, r: 2.6 }));
+      });
 
-      appendBox(svg, { x: 392, y: 118, width: 70, height: 62, label: "S", sublabel: "select" });
-      appendArrow(svg, 356, 150, 390, 150);
-      appendArrow(svg, 462, 150, 506, 150);
+      appendBox(svg, { x: 270, y: 122, width: 70, height: 58, label: "S", sublabel: "select" });
+      appendBox(svg, { x: 374, y: 122, width: 84, height: 58, label: "r = S(x)", sublabel: "q values" });
+      appendBox(svg, { x: 492, y: 122, width: 70, height: 58, label: "A", sublabel: "scale" });
+      appendCurvedArrow(svg, "M 216 150 C 236 150, 250 150, 268 150", 268, 150, 0);
+      appendArrow(svg, 340, 150, 372, 150);
+      appendArrow(svg, 458, 150, 490, 150);
 
       angleHeights.forEach((height, index) => {
-        const x = 532 + index * 44;
-        const y = 198 - height;
+        const x = 600 + index * 38;
+        const y = 202 - height;
 
         svg.append(
-          createSvgElement("line", { class: "qml-angle-axis", x1: x + 14, y1: 86, x2: x + 14, y2: 206 }),
-          createSvgElement("rect", { class: "qml-angle-bar", x, y, width: 28, height, rx: 5 })
+          createSvgElement("line", { class: "qml-angle-axis", x1: x + 12, y1: 102, x2: x + 12, y2: 210 }),
+          createSvgElement("rect", { class: "qml-angle-bar", x, y, width: 24, height, rx: 5 })
         );
-        appendSvgText(svg, `q${index + 1}`, {
+        appendSvgText(svg, ["a₁", "a₂", "a_q"][index], {
           class: "qml-flow-small-text",
-          x: x + 14,
-          y: 226,
+          x: x + 12,
+          y: 228,
           "text-anchor": "middle",
         });
       });
 
-      appendSvgText(svg, "x^q = A(S(x))", {
+      appendArrow(svg, 562, 150, 598, 150);
+      appendSvgText(svg, "a = A(S(x))", {
         class: "qml-flow-note",
-        x: 620,
-        y: 248,
+        x: 650,
+        y: 250,
         "text-anchor": "middle",
       });
 
-      appendSvgText(svg, "selected values become valid gate angles", {
+      appendSvgText(svg, "selected coordinates become angles that can control quantum gates", {
         class: "qml-flow-note",
         x: 386,
         y: 278,
@@ -2646,45 +2666,59 @@
     }
 
     function renderDruMapGraphic() {
-      const svg = makeDemoSvg("qml-flow-dru-map", "DataReuploading feature map");
-      const blocks = [
-        { label: "x^q", sublabel: "angles", x: 50, y: 125, width: 76, height: 54 },
-        { label: "U_enc(x)", sublabel: "encode", x: 170, y: 88, width: 104, height: 54 },
-        { label: "U_train(theta_1)", sublabel: "weights", x: 170, y: 174, width: 128, height: 54 },
-        { label: "U_enc(x)", sublabel: "reupload", x: 354, y: 88, width: 104, height: 54 },
-        { label: "U_train(theta_l)", sublabel: "weights", x: 354, y: 174, width: 128, height: 54 },
-        { label: "...", sublabel: "L layers", x: 526, y: 125, width: 70, height: 54 },
-        { label: "z(x)", sublabel: "measure", x: 648, y: 125, width: 76, height: 54 },
+      const svg = makeDemoSvg("qml-flow-dru-map", "DataReuploading feature map", "0 0 860 300");
+      const layerFrames = [
+        { x: 158, label: "layer 1", train: "Utrain(θ₁)" },
+        { x: 342, label: "layer 2", train: "Utrain(θ₂)" },
+        { x: 532, label: "layer n", train: "Utrain(θₙ)" },
       ];
 
       appendSvgText(svg, "DRU feature map", { class: "qml-flow-title", x: 42, y: 36 });
-      appendSvgText(svg, "phi_theta: R^q -> R^m", {
+      appendSvgText(svg, "φθ: R^q → R^m", {
         class: "qml-flow-formula",
-        x: 380,
+        x: 430,
         y: 36,
         "text-anchor": "middle",
       });
 
-      blocks.forEach((block, index) => {
-        appendBox(svg, {
-          ...block,
-          className: `qml-flow-box${index === 0 || index === blocks.length - 1 ? " is-terminal" : ""}`,
+      appendBox(svg, { x: 46, y: 128, width: 76, height: 54, label: "a", sublabel: "angles", className: "qml-flow-box is-terminal" });
+      layerFrames.forEach((layer) => {
+        svg.append(createSvgElement("rect", { class: "qml-feature-map-frame", x: layer.x, y: 82, width: 142, height: 138, rx: 12 }));
+        appendSvgText(svg, layer.label, {
+          class: "qml-flow-small-text",
+          x: layer.x + 71,
+          y: 104,
+          "text-anchor": "middle",
         });
+        appendBox(svg, { x: layer.x + 20, y: 114, width: 102, height: 42, label: "Uenc(a)", sublabel: "reupload" });
+        appendArrow(svg, layer.x + 71, 158, layer.x + 71, 174);
+        appendBox(svg, { x: layer.x + 12, y: 176, width: 118, height: 42, label: layer.train, sublabel: "weights" });
       });
 
-      [
-        [126, 152, 170, 115],
-        [126, 152, 170, 201],
-        [298, 201, 354, 201],
-        [274, 115, 354, 115],
-        [482, 201, 526, 152],
-        [458, 115, 526, 152],
-        [596, 152, 648, 152],
-      ].forEach(([x1, y1, x2, y2]) => appendArrow(svg, x1, y1, x2, y2));
+      [500, 508, 516].forEach((x) => {
+        svg.append(createSvgElement("circle", { class: "qml-ellipsis-dot", cx: x, cy: 151, r: 2.7 }));
+      });
+      appendBox(svg, { x: 694, y: 128, width: 76, height: 54, label: "measure", sublabel: "readout" });
+      appendBox(svg, { x: 790, y: 128, width: 68, height: 54, label: "z(x)", sublabel: "features", className: "qml-flow-box is-terminal" });
 
-      appendSvgText(svg, "the same classical input is injected again between trainable blocks", {
+      appendArrow(svg, 300, 155, 354, 155);
+      appendArrow(svg, 484, 155, 498, 155);
+      appendArrow(svg, 518, 155, 530, 155);
+      appendArrow(svg, 674, 155, 692, 155);
+      appendArrow(svg, 770, 155, 788, 155);
+      appendCurvedArrow(svg, "M 84 128 C 104 64, 196 62, 226 112", 226, 112, 68, "qml-control-arrow");
+      appendCurvedArrow(svg, "M 84 128 C 250 52, 380 58, 412 112", 412, 112, 68, "qml-control-arrow");
+      appendCurvedArrow(svg, "M 84 128 C 326 36, 554 58, 602 112", 602, 112, 64, "qml-control-arrow");
+      appendSvgText(svg, "same a is uploaded again in each layer", {
+        class: "qml-flow-small-text",
+        x: 412,
+        y: 246,
+        "text-anchor": "middle",
+      });
+
+      appendSvgText(svg, "reuploading alternates data encoding with trainable transformations", {
         class: "qml-flow-note",
-        x: 380,
+        x: 430,
         y: 278,
         "text-anchor": "middle",
       });
@@ -2725,6 +2759,71 @@
       appendSvgText(svg, "after measurement, z(x) is ordinary numeric data", {
         class: "qml-flow-note",
         x: 380,
+        y: 278,
+        "text-anchor": "middle",
+      });
+
+      return svg;
+    }
+
+    function renderDruMeasurementGraphic() {
+      const svg = makeDemoSvg("qml-flow-dru-measurement", "DRU measurement feature vector");
+      const observables = [
+        { label: "M₁", value: "z₁", x: 270, barHeight: 30 },
+        { label: "M₂", value: "z₂", x: 390, barHeight: 44 },
+        { label: "Mₘ", value: "zₘ", x: 510, barHeight: 36 },
+      ];
+
+      appendSvgText(svg, "Measurement", { class: "qml-flow-title", x: 42, y: 36 });
+      appendSvgText(svg, "zᵢ = ⟨ψ(a, θ) | Mᵢ | ψ(a, θ)⟩", {
+        class: "qml-flow-formula",
+        x: 390,
+        y: 36,
+        "text-anchor": "middle",
+      });
+      appendBox(svg, { x: 44, y: 128, width: 138, height: 56, label: "|ψ(a, θ)⟩", sublabel: "DRU state" });
+      appendSvgText(svg, "measure observables", {
+        class: "qml-flow-formula",
+        x: 426,
+        y: 82,
+        "text-anchor": "middle",
+      });
+      svg.append(createSvgElement("rect", { class: "qml-feature-map-frame", x: 238, y: 92, width: 348, height: 168, rx: 12 }));
+      appendBox(svg, { x: 606, y: 128, width: 126, height: 56, label: "z(x, θ)", sublabel: "measured features" });
+      appendArrow(svg, 182, 156, 236, 156);
+
+      observables.forEach((item) => {
+        appendBox(svg, { x: item.x, y: 112, width: 70, height: 44, label: item.label, className: "qml-flow-box qml-measure-box" });
+        appendArrow(svg, item.x + 35, 158, item.x + 35, 182);
+        svg.append(
+          createSvgElement("rect", { class: "qml-measure-track", x: item.x + 13, y: 190, width: 44, height: 44, rx: 7 }),
+          createSvgElement("rect", {
+            class: "qml-measure-bar",
+            x: item.x + 21,
+            y: 224 - item.barHeight,
+            width: 28,
+            height: item.barHeight,
+            rx: 5,
+          })
+        );
+        appendSvgText(svg, item.value, {
+          class: "qml-flow-small-text",
+          x: item.x + 35,
+          y: 248,
+          "text-anchor": "middle",
+        });
+      });
+
+      [477, 485, 493].forEach((x) => {
+        svg.append(createSvgElement("circle", { class: "qml-ellipsis-dot", cx: x, cy: 134, r: 2.7 }));
+        svg.append(createSvgElement("circle", { class: "qml-ellipsis-dot", cx: x, cy: 202, r: 2.7 }));
+      });
+      appendCurvedArrow(svg, "M 326 218 C 392 278, 536 276, 606 174", 606, 174, -56);
+      appendCurvedArrow(svg, "M 446 218 C 500 258, 574 246, 606 156", 606, 156, -70);
+      appendCurvedArrow(svg, "M 566 218 C 592 204, 592 166, 606 140", 606, 140, -62);
+      appendSvgText(svg, "measurements turn the DRU state into classical features", {
+        class: "qml-flow-note",
+        x: 390,
         y: 278,
         "text-anchor": "middle",
       });
@@ -2805,6 +2904,7 @@
         "feature-matrix": renderFeatureMatrixGraphic,
         "select-scale": renderSelectScaleGraphic,
         "dru-map": renderDruMapGraphic,
+        "dru-measurement": renderDruMeasurementGraphic,
         "concat-features": renderConcatenateGraphic,
         "classical-learner": renderClassicalLearnerGraphic,
         "feature-controls": renderControlsGraphic,

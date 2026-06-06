@@ -154,7 +154,7 @@
             activeStage: 0,
             graphic: "feature-matrix",
             viewNote:
-              "A DRU pipeline starts with an ordinary supervised dataset: samples, predictor columns, and labels remain classical.",
+              "A DRU pipeline starts with ordinary supervised pairs: each classical sample x_n is matched with a target y_n before any quantum encoding.",
           },
           {
             label: "Select and scale",
@@ -168,14 +168,14 @@
             activeStage: 2,
             graphic: "dru-map",
             viewNote:
-              "The DRU map phi_theta alternates data encoding and trainable gates, then returns measured features z(x).",
+              "The DRU map φθ repeatedly uploads the same angles a between trainable gates, then returns measured features z(x).",
           },
           {
-            label: "Concatenate",
+            label: "Measurement",
             activeStage: 3,
-            graphic: "concat-features",
+            graphic: "dru-measurement",
             viewNote:
-              "After measurement, z(x) is classical data and can be concatenated with the original feature vector.",
+              "The DRU state is measured through observables M_i, producing a classical vector z(x, θ) for the final classifier.",
           },
           {
             label: "Classical learner",
