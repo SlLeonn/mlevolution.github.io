@@ -2831,25 +2831,57 @@
       return svg;
     }
 
-    function renderClassicalLearnerGraphic() {
-      const svg = makeDemoSvg("qml-flow-learner", "Classical learner over hybrid features");
+    function renderOutputHeadGraphic() {
+      const svg = makeDemoSvg("qml-flow-output-head", "DRU output head");
+      const featureRows = [
+        { label: "z₁", y: 108 },
+        { label: "z₂", y: 146 },
+        { label: "zₘ", y: 214 },
+      ];
 
-      appendSvgText(svg, "Classical decision stage", { class: "qml-flow-title", x: 42, y: 36 });
-      appendBox(svg, { x: 54, y: 134, width: 92, height: 58, label: "u", sublabel: "[x; z]" });
-      appendBox(svg, { x: 210, y: 94, width: 126, height: 58, label: "a^T z + b", sublabel: "direct head" });
-      appendBox(svg, { x: 210, y: 178, width: 126, height: 58, label: "sum f_m(u)", sublabel: "ensemble head" });
-      appendBox(svg, { x: 424, y: 134, width: 100, height: 58, label: "h", sublabel: "logit" });
-      appendBox(svg, { x: 610, y: 134, width: 100, height: 58, label: "p = sigma(h)", sublabel: "probability" });
+      appendSvgText(svg, "Output head", { class: "qml-flow-title", x: 42, y: 36 });
+      appendSvgText(svg, "h = aᵀz(x, θ) + b   →   p = g(h)", {
+        class: "qml-flow-formula",
+        x: 410,
+        y: 36,
+        "text-anchor": "middle",
+      });
 
-      appendArrow(svg, 146, 163, 208, 123);
-      appendArrow(svg, 146, 163, 208, 207);
-      appendArrow(svg, 336, 123, 422, 163);
-      appendArrow(svg, 336, 207, 422, 163);
-      appendArrow(svg, 524, 163, 608, 163);
+      appendSvgText(svg, "measured vector", {
+        class: "qml-flow-formula",
+        x: 116,
+        y: 78,
+        "text-anchor": "middle",
+      });
+      svg.append(createSvgElement("rect", { class: "qml-feature-map-frame", x: 58, y: 88, width: 116, height: 158, rx: 12 }));
+      featureRows.forEach((row) => {
+        svg.append(createSvgElement("rect", { class: "qml-measure-track", x: 86, y: row.y, width: 60, height: 26, rx: 6 }));
+        appendSvgText(svg, row.label, {
+          class: "qml-flow-small-text",
+          x: 116,
+          y: row.y + 17,
+          "text-anchor": "middle",
+        });
+      });
+      [182, 190, 198].forEach((y) => {
+        svg.append(createSvgElement("circle", { class: "qml-ellipsis-dot", cx: 116, cy: y, r: 2.6 }));
+      });
 
-      appendSvgText(svg, "the learner is classical; DRU supplies the measured representation", {
+      appendBox(svg, { x: 228, y: 58, width: 96, height: 44, label: "a, b", sublabel: "head params" });
+      appendBox(svg, { x: 224, y: 128, width: 130, height: 64, label: "aᵀz + b", sublabel: "linear head" });
+      appendBox(svg, { x: 422, y: 132, width: 84, height: 56, label: "h", sublabel: "logit" });
+      appendBox(svg, { x: 532, y: 122, width: 126, height: 76, label: "g(h)", sublabel: "sigmoid / softmax" });
+      appendBox(svg, { x: 684, y: 130, width: 74, height: 60, label: "ŷ", sublabel: "prediction", className: "qml-flow-box is-terminal" });
+
+      appendArrow(svg, 174, 166, 222, 160);
+      appendCurvedArrow(svg, "M 276 102 C 288 112, 294 120, 294 126", 294, 126, 88, "qml-control-arrow");
+      appendArrow(svg, 354, 160, 420, 160);
+      appendArrow(svg, 506, 160, 530, 160);
+      appendArrow(svg, 658, 160, 682, 160);
+
+      appendSvgText(svg, "measured features stay classical; the output head maps them to logits and probabilities", {
         class: "qml-flow-note",
-        x: 380,
+        x: 390,
         y: 278,
         "text-anchor": "middle",
       });
@@ -2894,6 +2926,45 @@
       return svg;
     }
 
+    function renderTrainingLoopGraphic() {
+      const svg = makeDemoSvg("qml-flow-training-loop", "DRU classical training loop");
+
+      appendSvgText(svg, "Training loop", { class: "qml-flow-title", x: 42, y: 36 });
+      appendSvgText(svg, "minimize L(ŷ, y) over θ, a, b", {
+        class: "qml-flow-formula",
+        x: 410,
+        y: 36,
+        "text-anchor": "middle",
+      });
+
+      appendBox(svg, { x: 56, y: 126, width: 90, height: 60, label: "x, y", sublabel: "batch" });
+      appendBox(svg, { x: 220, y: 114, width: 142, height: 84, label: "DRU + head", sublabel: "θ, a, b" });
+      appendBox(svg, { x: 440, y: 126, width: 80, height: 60, label: "ŷ", sublabel: "prediction" });
+      appendBox(svg, { x: 594, y: 86, width: 112, height: 60, label: "L(ŷ, y)", sublabel: "loss" });
+      appendBox(svg, { x: 578, y: 184, width: 138, height: 60, label: "optimizer", sublabel: "classical" });
+
+      appendArrow(svg, 146, 156, 218, 156);
+      appendArrow(svg, 362, 156, 438, 156);
+      appendCurvedArrow(svg, "M 520 150 C 548 120, 562 114, 592 116", 592, 116, 0);
+      appendArrow(svg, 650, 146, 650, 182);
+      appendCurvedArrow(svg, "M 578 228 C 454 282, 274 282, 260 200", 260, 200, -104, "qml-feedback-loop");
+
+      appendSvgText(svg, "updated θ, a, b return to the circuit and output head", {
+        class: "qml-flow-small-text",
+        x: 422,
+        y: 218,
+        "text-anchor": "middle",
+      });
+      appendSvgText(svg, "the quantum model is evaluated inside a classical optimization loop", {
+        class: "qml-flow-note",
+        x: 390,
+        y: 278,
+        "text-anchor": "middle",
+      });
+
+      return svg;
+    }
+
     function renderFlowGraphic(state) {
       const graphicRenderers = {
         "bridge-data": renderBridgeDataGraphic,
@@ -2906,8 +2977,10 @@
         "dru-map": renderDruMapGraphic,
         "dru-measurement": renderDruMeasurementGraphic,
         "concat-features": renderConcatenateGraphic,
-        "classical-learner": renderClassicalLearnerGraphic,
+        "output-head": renderOutputHeadGraphic,
+        "classical-learner": renderOutputHeadGraphic,
         "feature-controls": renderControlsGraphic,
+        "training-loop": renderTrainingLoopGraphic,
       };
       const renderer = graphicRenderers[state.graphic];
 

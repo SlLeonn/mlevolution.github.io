@@ -143,11 +143,11 @@
           "This keeps the mathematics general: a specific project chooses how to select inputs, scale angles, entangle qubits, measure observables, and train the classical head.",
       },
       demo: {
-        label: "Hybrid connection",
+        label: "DRU classifier",
         type: "qml-flow",
-        title: "Classical-quantum hybrid connection",
+        title: "Direct DRU classifier flow",
         description:
-          "Click each step to follow how a DRU feature map connects back to ordinary classical machine learning.",
+          "Click each step to follow how classical samples become gate angles, DRU measurements, and a final prediction.",
         states: [
           {
             label: "Classical input",
@@ -178,18 +178,18 @@
               "The DRU state is measured through observables M_i, producing a classical vector z(x, θ) for the final classifier.",
           },
           {
-            label: "Classical learner",
+            label: "Output head",
             activeStage: 4,
-            graphic: "classical-learner",
+            graphic: "output-head",
             viewNote:
-              "The final prediction is made by a classical head or learner that consumes measured DRU features.",
+              "Measured DRU features are ordinary numbers; a small output head combines them into logits, probabilities, or class scores.",
           },
           {
-            label: "Controls",
+            label: "Training loop",
             activeStage: 5,
-            graphic: "feature-controls",
+            graphic: "training-loop",
             viewNote:
-              "A DRU representation should be compared against classical feature maps and an untrained DRU control.",
+              "Training is classical: predictions are compared with targets, a loss is computed, and the optimizer updates θ, a, and b.",
           },
         ],
       },
@@ -200,8 +200,8 @@
           "angular scaler A",
           "DRU map phi_theta",
           "measurement vector z",
-          "direct head",
-          "hybrid learner",
+          "output head",
+          "training loop",
         ],
       },
       metrics: {
