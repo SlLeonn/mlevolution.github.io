@@ -150,13 +150,187 @@
           items: ["Feature map", "Variational circuit", "Measurement", "Classical optimizer"],
         },
         metrics: {
-          label: "Bridge summary",
-          title: "What to remember",
+          label: "DRU implementation",
+          title: "PyTorch + PennyLane bridge",
+          isWide: true,
+          snapshot: {
+            kicker: "Implementation example",
+            title: "Data re-uploading quantum part",
+            intro:
+              "After the CNN compressor returns four classical features, the DRU circuit re-encodes those values across two quantum blocks, applies trainable entangling layers, and returns expectation values to a classical output head.",
+            formulaHtml:
+              "CNN(x) &in; R<sup>4</sup> &rarr; AngleEmbedding &rarr; StronglyEntanglingLayers &rarr; [&langle;Z<sub>0</sub>&rangle;, ..., &langle;Z<sub>3</sub>&rangle;]",
+            cards: [
+              {
+                title: "Device and wires",
+                equationHtml: "qml.device('lightning.gpu', wires = 4)",
+                copy:
+                  "The implementation uses a PennyLane GPU simulator with one wire per compressed CNN feature.",
+                detailTitle: "Quantum device setup",
+                detailCopy:
+                  "The number of wires is num_qubits. In your code num_qubits = 4, matching the CNNCompressor output_features value.",
+                detailEquations: [
+                  {
+                    meta: "device",
+                    title: "Simulator",
+                    equationHtml:
+                      "dev = qml.device('lightning.gpu', wires = num_qubits)",
+                    copy:
+                      "The circuit is evaluated through PennyLane with the Torch interface.",
+                  },
+                  {
+                    meta: "feature size",
+                    title: "CNN-to-QNN agreement",
+                    equationHtml:
+                      "CNNCompressor(..., output_features = num_qubits)",
+                    copy:
+                      "The classical compressor and quantum circuit share the same feature dimension.",
+                  },
+                ],
+              },
+              {
+                title: "Re-uploading blocks",
+                equationHtml: "num_reupload_blocks = 2",
+                copy:
+                  "The same four CNN features are injected into the circuit twice.",
+                detailTitle: "Data re-uploading pattern",
+                detailCopy:
+                  "A DRU block alternates data encoding and trainable quantum transformation. Repeating the block gives the circuit repeated access to the same classical vector without cloning a quantum state.",
+                detailEquations: [
+                  {
+                    meta: "block",
+                    title: "One block",
+                    equationHtml:
+                      "AngleEmbedding(inputs) &rarr; StronglyEntanglingLayers(weights[block])",
+                    copy:
+                      "AngleEmbedding writes the classical features into Y rotations; the entangling layer supplies trainable parameters.",
+                  },
+                  {
+                    meta: "repeat",
+                    title: "Two blocks",
+                    equationHtml:
+                      "for block in range(2): encode(inputs), entangle(weights[block])",
+                    copy:
+                      "The input is re-uploaded before each trainable block.",
+                  },
+                ],
+              },
+              {
+                title: "Encoding",
+                equationHtml: "qml.AngleEmbedding(inputs, rotation = 'Y')",
+                copy:
+                  "Each CNN output controls a Y rotation on its corresponding qubit.",
+                detailTitle: "Classical values become gate angles",
+                detailCopy:
+                  "The QNN receives ordinary PyTorch tensors. AngleEmbedding maps those tensor values into rotation angles on the circuit wires.",
+                detailEquations: [
+                  {
+                    meta: "inputs",
+                    title: "Circuit input",
+                    equationHtml:
+                      "inputs = CNN(x) = [r<sub>0</sub>, r<sub>1</sub>, r<sub>2</sub>, r<sub>3</sub>]",
+                    copy:
+                      "There is one compressed value per qubit.",
+                  },
+                  {
+                    meta: "rotation",
+                    title: "Encoding gate",
+                    equationHtml:
+                      "RY(r<sub>i</sub>) on wire i",
+                    copy:
+                      "The code uses rotation='Y', so each feature controls a Y-axis angle.",
+                  },
+                ],
+              },
+              {
+                title: "Trainable quantum layer",
+                equationHtml: "weights: (2, 1, 4, 3)",
+                copy:
+                  "StronglyEntanglingLayers contributes 24 trainable quantum parameters.",
+                detailTitle: "Weight shape",
+                detailCopy:
+                  "The TorchLayer weight shape is num_reupload_blocks x num_layers_per_block x num_qubits x 3. The last dimension represents three rotation parameters per qubit.",
+                detailEquations: [
+                  {
+                    meta: "shape",
+                    title: "Parameter tensor",
+                    equationHtml:
+                      "(2, 1, 4, 3)",
+                    copy:
+                      "Two re-upload blocks, one entangling layer per block, four qubits, and three rotation angles.",
+                  },
+                  {
+                    meta: "count",
+                    title: "Trainable count",
+                    equationHtml:
+                      "2 x 1 x 4 x 3 = 24",
+                    copy:
+                      "These parameters are optimized through the PyTorch training loop.",
+                  },
+                ],
+              },
+              {
+                title: "Measurements",
+                equationHtml: "[expval(PauliZ(i))]<sub>i=0..3</sub>",
+                copy:
+                  "The circuit returns four expectation values, one per qubit.",
+                detailTitle: "Quantum-to-classical output",
+                detailCopy:
+                  "Measurement turns the final quantum state back into a classical vector. That vector can enter another PyTorch layer.",
+                detailEquations: [
+                  {
+                    meta: "readout",
+                    title: "Expectation vector",
+                    equationHtml:
+                      "z = [&langle;Z<sub>0</sub>&rangle;, &langle;Z<sub>1</sub>&rangle;, &langle;Z<sub>2</sub>&rangle;, &langle;Z<sub>3</sub>&rangle;]",
+                    copy:
+                      "Each value is differentiable through PennyLane's Torch interface.",
+                  },
+                  {
+                    meta: "head",
+                    title: "Classical output layer",
+                    equationHtml:
+                      "Linear(num_qubits, num_classes)",
+                    copy:
+                      "The final PyTorch layer maps quantum measurements to class logits.",
+                  },
+                ],
+              },
+              {
+                title: "Hybrid training",
+                equationHtml: "CrossEntropyLoss + Adam(lr = 0.001)",
+                copy:
+                  "The whole model trains as one PyTorch module: CNN, QNN TorchLayer, and output head.",
+                detailTitle: "End-to-end model",
+                detailCopy:
+                  "HybridModel.forward applies cnn(x), qnn(x), then output_layer(x). The optimizer sees parameters from the classical CNN, quantum TorchLayer, and final linear layer.",
+                detailEquations: [
+                  {
+                    meta: "forward",
+                    title: "Model chain",
+                    equationHtml:
+                      "x &rarr; CNNCompressor &rarr; qml.qnn.TorchLayer &rarr; Linear",
+                    copy:
+                      "The quantum layer sits between two classical PyTorch components.",
+                  },
+                  {
+                    meta: "optimizer",
+                    title: "Training setup",
+                    equationHtml:
+                      "optimizer = Adam(hybrid_model.parameters(), lr = 0.001)",
+                    copy:
+                      "All differentiable parameters are updated by the same optimizer.",
+                  },
+                ],
+              },
+            ],
+          },
           points: [
-            "Classical data enters through feature maps",
-            "Trainable gates play the model-core role",
-            "Measurements return classical outputs",
-            "Optimization remains classical",
+            "4 CNN features feed 4 qubits",
+            "2 data re-uploading blocks",
+            "AngleEmbedding uses Y rotations",
+            "StronglyEntanglingLayers has 24 trainable parameters",
+            "PauliZ measurements feed a classical output layer",
           ],
         },
       },

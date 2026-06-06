@@ -726,6 +726,66 @@ h4 {
   stroke-width: 3.4;
 }
 
+.cnn-compressor-flow {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(118px, 1fr));
+  gap: 8px;
+  width: 100%;
+}
+
+.cnn-compressor-step,
+.cnn-compressor-detail {
+  display: grid;
+  gap: 8px;
+  min-width: 0;
+  padding: 12px;
+  border: 1px solid rgba(36, 106, 115, 0.16);
+  border-radius: var(--radius);
+  background: rgba(255, 255, 255, 0.74);
+  transition:
+    border-color 160ms ease,
+    background 160ms ease;
+}
+
+.cnn-compressor-step.is-active {
+  border-color: rgba(36, 106, 115, 0.42);
+  background: rgba(36, 106, 115, 0.08);
+}
+
+.cnn-compressor-step.is-primary {
+  border-color: var(--warm);
+  background: rgba(194, 125, 67, 0.12);
+}
+
+.cnn-compressor-number,
+.cnn-compressor-shape {
+  color: var(--accent-strong);
+  font-size: 0.72rem;
+  font-weight: 800;
+}
+
+.cnn-compressor-step h4,
+.cnn-compressor-detail h4 {
+  margin-bottom: 0;
+  font-size: 0.88rem;
+}
+
+.cnn-compressor-step p,
+.cnn-compressor-detail p {
+  margin-bottom: 0;
+  color: var(--muted);
+  font-size: 0.82rem;
+  line-height: 1.45;
+}
+
+.cnn-compressor-detail {
+  width: 100%;
+  border-color: rgba(194, 125, 67, 0.3);
+  background:
+    linear-gradient(rgba(255, 255, 255, 0.76), rgba(255, 255, 255, 0.76)),
+    linear-gradient(135deg, rgba(194, 125, 67, 0.12), rgba(36, 106, 115, 0.08));
+}
+
 .diagram-controls,
 .demo-buttons,
 .term-list,

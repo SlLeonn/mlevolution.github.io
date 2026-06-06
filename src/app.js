@@ -2848,6 +2848,58 @@
     activateState(panel.initialState || 0);
   }
 
+  function renderCnnCompressorDemo(panel) {
+    const { shell, stage, buttons, caption } = createDemoShell(panel);
+    const flow = createElement("div", "cnn-compressor-flow");
+    const detail = createElement("div", "cnn-compressor-detail");
+    const steps = panel.pipeline || [];
+
+    steps.forEach((step, index) => {
+      const block = createElement("article", "cnn-compressor-step");
+      const number = createElement("span", "cnn-compressor-number", pad(index + 1));
+      const title = createElement("h4", "", step.label);
+      const shape = createElement("span", "cnn-compressor-shape", step.shape);
+      const note = createElement("p", "", step.note);
+
+      block.dataset.step = String(index);
+      block.append(number, title, shape, note);
+      flow.append(block);
+    });
+
+    stage.append(flow, detail);
+
+    function activateState(stateIndex) {
+      const state = panel.states[stateIndex];
+
+      flow.querySelectorAll(".cnn-compressor-step").forEach((block) => {
+        const stepIndex = Number(block.dataset.step);
+
+        block.classList.toggle("is-active", state.activeSteps.includes(stepIndex));
+        block.classList.toggle("is-primary", stepIndex === state.primaryStep);
+      });
+      detail.replaceChildren(
+        createElement("span", "project-kicker", state.kicker || "Implementation note"),
+        createElement("h4", "", state.detailTitle || state.label),
+        createElement("p", "", state.detail)
+      );
+      caption.textContent = state.caption;
+      buttons.querySelectorAll("button").forEach((button, buttonIndex) => {
+        button.classList.toggle("is-active", buttonIndex === stateIndex);
+      });
+    }
+
+    panel.states.forEach((state, stateIndex) => {
+      const button = createElement("button", "demo-button", state.label);
+
+      button.type = "button";
+      button.addEventListener("click", () => activateState(stateIndex));
+      buttons.append(button);
+    });
+
+    elements.demoView.replaceChildren(shell);
+    activateState(panel.initialState || 0);
+  }
+
   function renderAttentionWeightsDemo(panel) {
     const { shell, stage, buttons, caption } = createDemoShell(panel);
     const tokens = panel.tokens || ["x1", "x2", "x3", "x4"];
@@ -3082,6 +3134,11 @@
 
     if (panel.type === "qml-flow") {
       renderQmlFlowDemo(panel);
+      return;
+    }
+
+    if (panel.type === "cnn-compressor") {
+      renderCnnCompressorDemo(panel);
       return;
     }
 
