@@ -726,11 +726,25 @@ h4 {
   stroke-width: 3.4;
 }
 
+.demo-stage.cnn-compressor-stage {
+  display: grid;
+  align-items: stretch;
+  justify-content: initial;
+  gap: 12px;
+}
+
+.cnn-compressor-viewport {
+  min-width: 0;
+  width: 100%;
+  overflow-x: auto;
+  padding-bottom: 2px;
+}
+
 .cnn-compressor-flow {
   display: grid;
-  grid-template-columns: repeat(6, minmax(118px, 1fr));
+  grid-template-columns: repeat(6, minmax(136px, 1fr));
   gap: 8px;
-  width: 100%;
+  min-width: 860px;
 }
 
 .cnn-compressor-step,
@@ -780,10 +794,26 @@ h4 {
 
 .cnn-compressor-detail {
   width: 100%;
+  grid-template-columns: minmax(110px, 0.28fr) minmax(0, 0.72fr);
+  align-items: start;
+  gap: 8px 16px;
   border-color: rgba(194, 125, 67, 0.3);
   background:
     linear-gradient(rgba(255, 255, 255, 0.76), rgba(255, 255, 255, 0.76)),
     linear-gradient(135deg, rgba(194, 125, 67, 0.12), rgba(36, 106, 115, 0.08));
+}
+
+.cnn-compressor-detail .project-kicker {
+  grid-row: span 2;
+  align-self: start;
+}
+
+.cnn-compressor-detail h4 {
+  font-size: 1rem;
+}
+
+.cnn-compressor-detail p {
+  max-width: 64ch;
 }
 
 .diagram-controls,

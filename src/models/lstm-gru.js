@@ -2,7 +2,7 @@
   window.MLEvolution.registerModel(
     window.MLEvolution.createModel({
       id: "lstm-gru",
-      order: 5,
+      order: 4,
       title: "LSTM / GRU",
       year: "1997 / 2014",
       overview: {

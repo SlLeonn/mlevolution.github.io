@@ -3023,9 +3023,12 @@
 
   function renderCnnCompressorDemo(panel) {
     const { shell, stage, buttons, caption } = createDemoShell(panel);
+    const flowViewport = createElement("div", "cnn-compressor-viewport");
     const flow = createElement("div", "cnn-compressor-flow");
     const detail = createElement("div", "cnn-compressor-detail");
     const steps = panel.pipeline || [];
+
+    stage.classList.add("cnn-compressor-stage");
 
     steps.forEach((step, index) => {
       const block = createElement("article", "cnn-compressor-step");
@@ -3039,7 +3042,8 @@
       flow.append(block);
     });
 
-    stage.append(flow, detail);
+    flowViewport.append(flow);
+    stage.append(flowViewport, detail);
 
     function activateState(stateIndex) {
       const state = panel.states[stateIndex];

@@ -2,7 +2,7 @@
   window.MLEvolution.registerModel(
     window.MLEvolution.createModel({
       id: "cnn",
-      order: 3,
+      order: 5,
       title: "CNN",
       year: "1998",
       overview: {
