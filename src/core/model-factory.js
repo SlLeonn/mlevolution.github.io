@@ -36,6 +36,7 @@
 
   namespace.models = namespace.models || [];
   namespace.projects = namespace.projects || [];
+  namespace.druApplications = namespace.druApplications || [];
 
   namespace.createModel = function createModel(config) {
     const panels = config.panels || {};
@@ -98,5 +99,19 @@
       placeholder: "QML project placeholder",
       ...project,
     });
+  };
+
+  namespace.registerDruApplication = function registerDruApplication(application) {
+    if (!application.id || !application.title || !application.label) {
+      throw new Error("DRU application files must define id, title, and label.");
+    }
+
+    const duplicate = namespace.druApplications.some((entry) => entry.id === application.id);
+
+    if (duplicate) {
+      throw new Error(`Duplicate DRU application id: ${application.id}`);
+    }
+
+    namespace.druApplications.push(application);
   };
 })();

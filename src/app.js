@@ -2,6 +2,7 @@
   const namespace = window.MLEvolution || {};
   const models = [...(namespace.models || [])].sort((a, b) => a.order - b.order);
   const projects = namespace.projects || [];
+  const druApplications = namespace.druApplications || [];
   const svgNamespace = "http://www.w3.org/2000/svg";
 
   const elements = {
@@ -18,9 +19,11 @@
     demoView: document.querySelector("[data-demo-view]"),
     controlsLabel: document.querySelector("[data-controls-label]"),
     controlsShell: document.querySelector("[data-controls-shell]"),
+    metricsTitle: document.querySelector("[data-metrics-title]"),
     metricsLabel: document.querySelector("[data-metrics-label]"),
     metricsView: document.querySelector("[data-metrics-view]"),
     insightView: document.querySelector("[data-insight-view]"),
+    workspaceGrid: document.querySelector(".workspace-grid"),
   };
 
   function pad(value) {
@@ -49,6 +52,12 @@
     }
 
     return element;
+  }
+
+  function setExpandedImplementationLayout(isExpanded) {
+    if (elements.workspaceGrid) {
+      elements.workspaceGrid.classList.toggle("has-expanded-implementation", isExpanded);
+    }
   }
 
   function createSvgElement(tag, attributes = {}) {
@@ -1185,6 +1194,7 @@
       const title = createElement("strong", "", project.title);
 
       button.type = "button";
+      button.dataset.project = project.id;
       button.setAttribute("aria-label", `Open ${project.title}`);
       button.addEventListener("click", () => {
         setActiveProject(project.id, true);
@@ -1687,6 +1697,178 @@
     return { shell, stage, buttons, caption };
   }
 
+  function createCnnImplementationExample(example) {
+    if (!example) {
+      return null;
+    }
+
+    const wrapper = createElement("section", "cnn-implementation-example");
+    const toggle = createElement("button", "demo-button cnn-implementation-toggle", example.toggleLabel || "Implementation example");
+    const body = createElement("div", "cnn-implementation-body");
+    const header = createElement("div", "project-final-header");
+    const stage = createElement("div", "demo-stage cnn-compressor-stage cnn-implementation-stage");
+    const flowViewport = createElement("div", "cnn-compressor-viewport");
+    const flow = createElement("div", "cnn-compressor-flow");
+    const detail = createElement("div", "cnn-compressor-detail");
+    const buttons = createElement("div", "demo-buttons cnn-implementation-state-buttons");
+    const caption = createElement("p", "demo-caption");
+    const cards = createElement("div", "project-analogy-grid project-application-grid");
+    const cardDetail = createElement("section", "project-application-detail");
+    const list = createElement("div", "note-list");
+    const steps = example.pipeline || [];
+    const states = example.states || [];
+    const exampleCards = example.cards || [];
+
+    toggle.type = "button";
+    toggle.setAttribute("aria-expanded", "false");
+    body.hidden = true;
+
+    header.append(
+      createElement("span", "project-kicker", "Implementation example"),
+      createElement("h4", "", example.title || "Project implementation")
+    );
+
+    if (example.description) {
+      header.append(createElement("p", "", example.description));
+    }
+
+    if (example.formulaHtml) {
+      const formula = createElement("div", "formula formula-hero");
+
+      formula.innerHTML = example.formulaHtml;
+      header.append(formula);
+    }
+
+    steps.forEach((step, index) => {
+      const block = createElement("article", "cnn-compressor-step");
+      const number = createElement("span", "cnn-compressor-number", pad(index + 1));
+      const title = createElement("h4", "", step.label);
+      const shape = createElement("span", "cnn-compressor-shape", step.shape);
+      const note = createElement("p", "", step.note);
+
+      block.dataset.step = String(index);
+      block.append(number, title, shape, note);
+      flow.append(block);
+    });
+
+    flowViewport.append(flow);
+    stage.append(flowViewport, detail);
+
+    function activateState(stateIndex) {
+      const state = states[stateIndex];
+      const activeSteps = state.activeSteps || [];
+
+      flow.querySelectorAll(".cnn-compressor-step").forEach((block) => {
+        const stepIndex = Number(block.dataset.step);
+
+        block.classList.toggle("is-active", activeSteps.includes(stepIndex));
+        block.classList.toggle("is-primary", stepIndex === state.primaryStep);
+      });
+
+      detail.replaceChildren(
+        createElement("span", "project-kicker", state.kicker || "Step focus"),
+        createElement("h4", "", state.detailTitle || state.label),
+        createElement("p", "", state.detail)
+      );
+      caption.textContent = state.caption || "";
+
+      buttons.querySelectorAll("button").forEach((button, buttonIndex) => {
+        button.classList.toggle("is-active", buttonIndex === stateIndex);
+        button.setAttribute("aria-pressed", String(buttonIndex === stateIndex));
+      });
+    }
+
+    states.forEach((state, stateIndex) => {
+      const button = createElement("button", "demo-button", state.label);
+
+      button.type = "button";
+      button.setAttribute("aria-pressed", "false");
+      button.addEventListener("click", () => activateState(stateIndex));
+      buttons.append(button);
+    });
+
+    function renderCardDetail(card, index) {
+      const title = createElement("h4", "", card.detailTitle || card.title);
+      const intro = createElement("p", "", card.detailCopy || card.copy);
+      const equations = createElement("div", "project-detail-equations");
+
+      (card.detailEquations || []).forEach((entry) => {
+        const equationCard = createElement("article", "math-step");
+        const meta = createElement("span", "math-step-meta", entry.meta || "");
+        const equationTitle = createElement("h4", "", entry.title || "");
+        const equation = createElement("div", "step-equation");
+        const copy = createElement("p", "", entry.copy || "");
+
+        equation.innerHTML = entry.equationHtml || "";
+        equationCard.append(meta, equationTitle, equation, copy);
+        equations.append(equationCard);
+      });
+
+      cardDetail.replaceChildren(title, intro);
+      if (card.detailEquations && card.detailEquations.length) {
+        cardDetail.append(equations);
+      }
+
+      cards.querySelectorAll("button").forEach((button, buttonIndex) => {
+        button.classList.toggle("is-active", buttonIndex === index);
+        button.setAttribute("aria-pressed", String(buttonIndex === index));
+      });
+    }
+
+    exampleCards.forEach((card, index) => {
+      const item = createElement("button", "project-info-card project-application-button");
+      const title = createElement("h4", "", card.title);
+      const copy = createElement("p", "", card.copy);
+
+      item.type = "button";
+      item.setAttribute("aria-pressed", "false");
+      item.addEventListener("click", () => renderCardDetail(card, index));
+      item.append(title);
+
+      if (card.equationHtml) {
+        const equation = createElement("div", "step-equation");
+
+        equation.innerHTML = card.equationHtml;
+        item.append(equation);
+      }
+
+      item.append(copy);
+      cards.append(item);
+    });
+
+    (example.points || []).forEach((point) => {
+      list.append(createElement("span", "note-chip", point));
+    });
+
+    toggle.addEventListener("click", () => {
+      const isExpanded = toggle.getAttribute("aria-expanded") === "true";
+
+      toggle.setAttribute("aria-expanded", String(!isExpanded));
+      toggle.classList.toggle("is-active", !isExpanded);
+      body.hidden = isExpanded;
+      setExpandedImplementationLayout(!isExpanded);
+    });
+
+    body.append(header, stage);
+
+    if (states.length) {
+      body.append(buttons, caption);
+      activateState(example.initialState || 0);
+    }
+
+    if (exampleCards.length) {
+      body.append(cards, cardDetail);
+      renderCardDetail(exampleCards[0], 0);
+    }
+
+    if (example.points && example.points.length) {
+      body.append(list);
+    }
+
+    wrapper.append(toggle, body);
+    return wrapper;
+  }
+
   function renderDecisionBoundaryDemo(panel) {
     const { shell, stage, buttons, caption } = createDemoShell(panel);
     const svg = createSvgElement("svg", {
@@ -1750,6 +1932,12 @@
       button.addEventListener("click", () => activateState(stateIndex));
       buttons.append(button);
     });
+
+    const implementationExample = createCnnImplementationExample(panel.implementationExample);
+
+    if (implementationExample) {
+      shell.append(implementationExample);
+    }
 
     elements.demoView.replaceChildren(shell);
     activateState(panel.initialState || 0);
@@ -3277,6 +3465,7 @@
       return;
     }
 
+    setExpandedImplementationLayout(false);
     elements.demoView.classList.remove("is-content-view");
 
     if (!panel.states.length) {
@@ -3348,6 +3537,353 @@
     );
   }
 
+  function renderDruCircuitGraphic() {
+    const svg = createSvgElement("svg", {
+      class: "dru-circuit-svg",
+      viewBox: "0 0 920 360",
+      role: "img",
+      "aria-label": "DataReuploading circuit diagram",
+    });
+    const qubits = [
+      { label: "q0", y: 86 },
+      { label: "q1", y: 122 },
+      { label: "q2", y: 158 },
+      { label: "q3", y: 194 },
+      { label: "q4", y: 230 },
+      { label: "q5", y: 266 },
+    ];
+    const layerX = [318, 492, 666];
+
+    svg.append(
+      createSvgElement("text", { class: "dru-circuit-title", x: 70, y: 38 }),
+      createSvgElement("text", { class: "dru-circuit-title", x: 316, y: 38 }),
+      createSvgElement("text", { class: "dru-circuit-title", x: 704, y: 38 })
+    );
+    svg.querySelectorAll(".dru-circuit-title")[0].textContent = "selected classical inputs";
+    svg.querySelectorAll(".dru-circuit-title")[1].textContent = "L reuploading layers";
+    svg.querySelectorAll(".dru-circuit-title")[2].textContent = "measured features";
+
+    svg.append(
+      createSvgElement("rect", { class: "dru-circuit-stage", x: 52, y: 58, width: 172, height: 248, rx: 10 }),
+      createSvgElement("rect", { class: "dru-circuit-stage", x: 262, y: 58, width: 474, height: 248, rx: 10 }),
+      createSvgElement("rect", { class: "dru-circuit-stage", x: 770, y: 58, width: 104, height: 248, rx: 10 })
+    );
+
+    qubits.forEach((qubit, index) => {
+      svg.append(
+        createSvgElement("text", { class: "dru-circuit-label", x: 72, y: qubit.y + 5 }),
+        createSvgElement("line", {
+          class: "dru-qubit-line",
+          x1: 132,
+          y1: qubit.y,
+          x2: 822,
+          y2: qubit.y,
+        }),
+        createSvgElement("rect", { class: "dru-input-node", x: 96, y: qubit.y - 13, width: 52, height: 26, rx: 7 }),
+        createSvgElement("text", { class: "dru-input-text", x: 122, y: qubit.y + 5, "text-anchor": "middle" })
+      );
+      svg.querySelectorAll(".dru-circuit-label")[index].textContent = qubit.label;
+      svg.querySelectorAll(".dru-input-text")[index].textContent = `x${index}`;
+    });
+
+    layerX.forEach((x, layerIndex) => {
+      svg.append(createSvgElement("text", { class: "dru-layer-label", x: x + 54, y: 72, "text-anchor": "middle" }));
+      svg.querySelectorAll(".dru-layer-label")[layerIndex].textContent = `layer ${layerIndex + 1}`;
+
+      qubits.forEach((qubit) => {
+        const local = createSvgElement("g", { transform: `translate(${x} ${qubit.y - 14})` });
+
+        local.append(
+          createSvgElement("rect", { class: "dru-gate dru-data-gate", width: 58, height: 28, rx: 6 }),
+          createSvgElement("text", { class: "dru-gate-text", x: 29, y: 18, "text-anchor": "middle" }),
+          createSvgElement("rect", { class: "dru-gate dru-weight-gate", x: 66, width: 44, height: 28, rx: 6 }),
+          createSvgElement("text", { class: "dru-gate-text", x: 88, y: 18, "text-anchor": "middle" })
+        );
+        local.querySelectorAll(".dru-gate-text")[0].textContent = "Rot(x)";
+        local.querySelectorAll(".dru-gate-text")[1].textContent = "Rot(w)";
+        svg.append(local);
+      });
+
+      qubits.slice(0, -1).forEach((qubit, index) => {
+        const next = qubits[index + 1];
+        const cx = x + 130;
+
+        svg.append(
+          createSvgElement("line", { class: "dru-entangle-line", x1: cx, y1: qubit.y, x2: cx, y2: next.y }),
+          createSvgElement("circle", { class: "dru-control", cx, cy: qubit.y, r: 4 }),
+          createSvgElement("circle", { class: "dru-target", cx, cy: next.y, r: 8 }),
+          createSvgElement("line", { class: "dru-target-cross", x1: cx - 6, y1: next.y, x2: cx + 6, y2: next.y }),
+          createSvgElement("line", { class: "dru-target-cross", x1: cx, y1: next.y - 6, x2: cx, y2: next.y + 6 })
+        );
+      });
+
+      svg.append(
+        createSvgElement("path", {
+          class: "dru-ring-link",
+          d: `M ${x + 130} ${qubits[5].y} C ${x + 164} 314, ${x + 164} 46, ${x + 130} ${qubits[0].y}`,
+        })
+      );
+    });
+
+    qubits.forEach((qubit, index) => {
+      svg.append(
+        createSvgElement("rect", { class: "dru-measure-node", x: 792, y: qubit.y - 13, width: 46, height: 26, rx: 7 }),
+        createSvgElement("text", { class: "dru-input-text", x: 815, y: qubit.y + 5, "text-anchor": "middle" })
+      );
+      svg.querySelectorAll(".dru-input-text")[qubits.length + index].textContent = index < 3 ? "<Z>" : "<ZZ>";
+    });
+
+    svg.append(createSvgElement("text", { class: "dru-circuit-note", x: 460, y: 330, "text-anchor": "middle" }));
+    svg.querySelector(".dru-circuit-note").textContent =
+      "Rot(x) reuploads selected data; Rot(w) is trainable; CNOT links create ring interactions before measurement.";
+
+    return svg;
+  }
+
+  function createProjectSnapshotContent(snapshotPanel) {
+    const content = createElement("div", "project-final-snapshot");
+    const header = createElement("div", "project-final-header");
+    const cards = createElement("div", "project-analogy-grid project-application-grid");
+    const detail = createElement("section", "project-application-detail");
+    const list = createElement("div", "note-list");
+    const snapshot = snapshotPanel.snapshot || {};
+    const snapshotCards = snapshot.cards || [];
+
+    header.append(
+      createElement("span", "project-kicker", snapshot.kicker || snapshotPanel.label),
+      createElement("h4", "", snapshot.title || snapshotPanel.title)
+    );
+
+    if (snapshot.intro) {
+      header.append(createElement("p", "", snapshot.intro));
+    }
+
+    function renderSnapshotDetail(card, index) {
+      const title = createElement("h4", "", card.detailTitle || card.title);
+      const intro = createElement("p", "", card.detailCopy || card.copy);
+      const equations = createElement("div", "project-detail-equations");
+
+      (card.detailEquations || []).forEach((entry) => {
+        const equationCard = createElement("article", "math-step");
+        const meta = createElement("span", "math-step-meta", entry.meta || "");
+        const equationTitle = createElement("h4", "", entry.title || "");
+        const equation = createElement("div", "step-equation");
+        const copy = createElement("p", "", entry.copy || "");
+
+        equation.innerHTML = entry.equationHtml || "";
+        equationCard.append(meta, equationTitle, equation, copy);
+        equations.append(equationCard);
+      });
+
+      detail.replaceChildren(title, intro);
+
+      if (card.graphic === "dru-circuit") {
+        const graphic = createElement("div", "project-detail-graphic");
+
+        graphic.append(renderDruCircuitGraphic());
+        detail.append(graphic);
+      }
+
+      if (card.graphicPlaceholder && card.graphic !== "dru-circuit") {
+        const placeholder = createElement("div", "qml-demo-graphic-slot project-detail-placeholder");
+
+        placeholder.append(createElement("span", "qml-demo-graphic-label", card.graphicPlaceholder));
+        detail.append(placeholder);
+      }
+
+      if (card.detailEquations && card.detailEquations.length) {
+        detail.append(equations);
+      }
+
+      cards.querySelectorAll("button").forEach((button, buttonIndex) => {
+        button.classList.toggle("is-active", buttonIndex === index);
+        button.setAttribute("aria-pressed", String(buttonIndex === index));
+      });
+    }
+
+    snapshotCards.forEach((card, index) => {
+      const item = createElement("button", "project-info-card project-application-button");
+      const cardTitle = createElement("h4", "", card.title);
+      const copy = createElement("p", "", card.copy);
+
+      item.type = "button";
+      item.setAttribute("aria-pressed", "false");
+      item.addEventListener("click", () => renderSnapshotDetail(card, index));
+      item.append(cardTitle);
+      if (card.equationHtml) {
+        const equation = createElement("div", "step-equation");
+
+        equation.innerHTML = card.equationHtml;
+        item.append(equation);
+      }
+      item.append(copy);
+      cards.append(item);
+    });
+
+    if (snapshot.formulaHtml) {
+      const formula = createElement("div", "formula formula-hero");
+
+      formula.innerHTML = snapshot.formulaHtml;
+      content.append(header, cards, detail, formula);
+    } else {
+      content.append(header, cards, detail);
+    }
+
+    (snapshotPanel.points || []).forEach((point) => {
+      list.append(createElement("span", "note-chip", point));
+    });
+
+    if (snapshotPanel.points && snapshotPanel.points.length) {
+      content.append(list);
+    }
+
+    if (snapshotCards.length) {
+      renderSnapshotDetail(snapshotCards[0], 0);
+    }
+
+    return content;
+  }
+
+  function createDruApplicationContent(application) {
+    const content = createElement("div", "dru-application-content");
+    const header = createElement("div", "project-final-header");
+    const architecture = application.architecture;
+    const mathPanel = application.panels && application.panels.math;
+    const metricsPanel = application.panels && application.panels.metrics;
+
+    header.append(
+      createElement("span", "project-kicker", application.kicker || application.label),
+      createElement("h4", "", application.title)
+    );
+
+    if (application.summary) {
+      header.append(createElement("p", "", application.summary));
+    }
+
+    if (application.relation) {
+      header.append(createElement("p", "project-relation", application.relation));
+    }
+
+    content.append(header);
+
+    if (architecture && (architecture.flow || architecture.cards)) {
+      const overview = createElement("section", "dru-application-section");
+
+      overview.append(createElement("span", "project-kicker", "Architecture"));
+
+      if (architecture.summary) {
+        overview.append(createElement("h4", "", architecture.summary));
+      }
+
+      if (architecture.relation) {
+        overview.append(createElement("p", "", architecture.relation));
+      }
+
+      if (architecture.flow && architecture.flow.length) {
+        const flow = createElement("div", "project-flow-strip");
+
+        architecture.flow.forEach((step) => {
+          const item = createElement("article", "project-flow-step");
+          const notation = createElement("span", "project-notation");
+
+          notation.innerHTML = step.notationHtml || "";
+          item.append(createElement("h4", "", step.label), notation, createElement("p", "", step.detail || ""));
+          flow.append(item);
+        });
+        overview.append(flow);
+      }
+
+      if (architecture.cards && architecture.cards.length) {
+        const cards = createElement("div", "project-analogy-grid");
+
+        architecture.cards.forEach((card) => {
+          const item = createElement("article", "project-info-card");
+
+          item.append(createElement("h4", "", card.title), createElement("p", "", card.copy));
+          cards.append(item);
+        });
+        overview.append(cards);
+      }
+
+      content.append(overview);
+    }
+
+    if (mathPanel && (mathPanel.formulaHtml || (mathPanel.steps && mathPanel.steps.length))) {
+      const math = createElement("section", "dru-application-section");
+
+      math.append(createElement("span", "project-kicker", mathPanel.label || "Project math"));
+
+      if (mathPanel.formulaHtml) {
+        const formula = createElement("div", "formula formula-hero");
+
+        formula.innerHTML = mathPanel.formulaHtml;
+        math.append(formula);
+      }
+
+      if (mathPanel.intro) {
+        math.append(createElement("p", "", mathPanel.intro));
+      }
+
+      if (mathPanel.steps && mathPanel.steps.length) {
+        const steps = createElement("div", "math-step-grid");
+
+        mathPanel.steps.forEach((step) => {
+          const card = createElement("article", "math-step");
+          const meta = createElement("span", "math-step-meta", step.meta || "");
+          const title = createElement("h4", "", step.title || "");
+          const equation = createElement("div", "step-equation");
+          const copy = createElement("p", "", step.copy || "");
+
+          equation.innerHTML = step.equationHtml || "";
+          card.append(meta, title, equation, copy);
+          steps.append(card);
+        });
+        math.append(steps);
+      }
+
+      if (mathPanel.terms && mathPanel.terms.length) {
+        const terms = createElement("div", "term-list");
+
+        mathPanel.terms.forEach((term) => {
+          terms.append(createElement("span", "term-chip", term));
+        });
+        math.append(terms);
+      }
+
+      if (mathPanel.note) {
+        math.append(createElement("p", "math-note", mathPanel.note));
+      }
+
+      content.append(math);
+    }
+
+    if (metricsPanel && metricsPanel.snapshot) {
+      content.append(createProjectSnapshotContent(metricsPanel));
+    } else if (application.snapshot) {
+      content.append(createProjectSnapshotContent(application));
+    }
+
+    if (metricsPanel && ((application.sections && application.sections.length) || (application.points && application.points.length))) {
+      const takeaways = createElement("section", "dru-application-section");
+      const chips = createElement("div", "note-list");
+
+      takeaways.append(createElement("span", "project-kicker", "Application takeaways"));
+
+      (application.sections || []).forEach((section) => {
+        chips.append(createElement("span", "note-chip", section));
+      });
+
+      (application.points || []).forEach((point) => {
+        chips.append(createElement("span", "note-chip", point));
+      });
+
+      takeaways.append(chips);
+      content.append(takeaways);
+    }
+
+    return content;
+  }
+
   function renderMetricsPanel(panel) {
     if (!elements.metricsView) {
       return;
@@ -3357,6 +3893,75 @@
 
     if (metricsPanel) {
       metricsPanel.classList.toggle("is-wide", Boolean(panel.isWide));
+    }
+
+    if (panel.applications && panel.applications.length) {
+      const applications = panel.applications
+        .map((applicationId) => druApplications.find((application) => application.id === applicationId))
+        .filter(Boolean);
+      const content = createElement("div", "dru-application-browser");
+      const header = createElement("div", "project-final-header");
+      const switcher = createElement("div", "dru-application-switcher");
+      const detail = createElement("div", "dru-application-detail");
+
+      if (!applications.length) {
+        elements.metricsView.classList.remove("is-content-view");
+        elements.metricsView.replaceChildren(createElement("p", "", "Application content is not available yet."));
+        return;
+      }
+
+      header.append(
+        createElement("span", "project-kicker", panel.kicker || "DRU applications"),
+        createElement("h4", "", panel.title || "Specific applications")
+      );
+
+      if (panel.intro) {
+        header.append(createElement("p", "", panel.intro));
+      }
+
+      function activateApplication(applicationIndex) {
+        const application = applications[applicationIndex];
+
+        if (!application) {
+          return;
+        }
+
+        detail.hidden = false;
+        detail.replaceChildren(createDruApplicationContent(application));
+        switcher.querySelectorAll("button").forEach((button, buttonIndex) => {
+          button.classList.toggle("is-active", buttonIndex === applicationIndex);
+          button.setAttribute("aria-pressed", String(buttonIndex === applicationIndex));
+        });
+      }
+
+      applications.forEach((application, applicationIndex) => {
+        const button = createElement("button", "project-info-card project-application-button dru-application-switch");
+        const title = createElement("h4", "", application.title);
+        const summary = createElement("p", "", application.summary || application.relation || "");
+
+        button.type = "button";
+        button.setAttribute("aria-pressed", "false");
+        button.addEventListener("click", () => activateApplication(applicationIndex));
+        if (panel.showApplicationLabels !== false) {
+          button.append(createElement("span", "project-kicker", application.label));
+        }
+        button.append(title);
+
+        if (summary.textContent) {
+          button.append(summary);
+        }
+
+        switcher.append(button);
+      });
+
+      content.append(header, switcher, detail);
+      elements.metricsView.classList.add("is-content-view");
+      elements.metricsView.replaceChildren(content);
+      detail.hidden = true;
+      if (Number.isInteger(panel.initialApplication)) {
+        activateApplication(panel.initialApplication);
+      }
+      return;
     }
 
     if (panel.snapshot) {
@@ -3846,6 +4451,7 @@
     setText(elements.mathLabel, panels.math.label);
     setText(elements.demoLabel, panels.demo.label);
     setText(elements.controlsLabel, panels.controls.label);
+    setText(elements.metricsTitle, panels.metrics.heading || "Metrics");
     setText(elements.metricsLabel, panels.metrics.label);
 
     const back = createElement("button", "diagram-button project-header-back", "Back to QML Bridge");
@@ -3892,6 +4498,7 @@
     setText(elements.mathLabel, panels.math.label);
     setText(elements.demoLabel, panels.demo.label);
     setText(elements.controlsLabel, panels.controls.label);
+    setText(elements.metricsTitle, panels.metrics.heading || "Metrics");
     setText(elements.metricsLabel, panels.metrics.label);
 
     renderArchitecturePanel(panels.architecture);

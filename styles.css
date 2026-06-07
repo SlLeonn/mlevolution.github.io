@@ -341,6 +341,30 @@ h4 {
   min-height: 220px;
 }
 
+.workspace-grid.has-expanded-implementation {
+  align-items: start;
+}
+
+.workspace-grid.has-expanded-implementation .demo-panel {
+  grid-column: 1 / -1;
+  grid-row: auto;
+}
+
+.workspace-grid.has-expanded-implementation .controls-panel,
+.workspace-grid.has-expanded-implementation .metrics-panel {
+  grid-column: auto;
+  grid-row: auto;
+  align-self: start;
+}
+
+.workspace-grid.has-expanded-implementation .cnn-implementation-body {
+  gap: 16px;
+}
+
+.workspace-grid.has-expanded-implementation .cnn-implementation-stage .cnn-compressor-flow {
+  min-width: 0;
+}
+
 .panel-heading {
   display: flex;
   align-items: center;
@@ -814,6 +838,42 @@ h4 {
 
 .cnn-compressor-detail p {
   max-width: 64ch;
+}
+
+.cnn-implementation-example {
+  display: grid;
+  gap: 12px;
+  padding-top: 4px;
+}
+
+.cnn-implementation-toggle {
+  justify-self: start;
+  min-height: 38px;
+}
+
+.cnn-implementation-body {
+  display: grid;
+  gap: 14px;
+  padding: 14px;
+  border: 1px solid rgba(36, 106, 115, 0.16);
+  border-radius: var(--radius);
+  background:
+    linear-gradient(rgba(255, 255, 255, 0.82), rgba(255, 255, 255, 0.82)),
+    linear-gradient(135deg, rgba(36, 106, 115, 0.08), rgba(194, 125, 67, 0.08));
+}
+
+.cnn-implementation-body[hidden] {
+  display: none;
+}
+
+.cnn-implementation-stage {
+  padding: 0;
+  border: 0;
+  background: transparent;
+}
+
+.cnn-implementation-state-buttons {
+  margin-top: -2px;
 }
 
 .diagram-controls,
@@ -2076,6 +2136,74 @@ h4 {
   gap: 14px;
 }
 
+.dru-application-browser,
+.dru-application-detail,
+.dru-application-content,
+.dru-application-section {
+  display: grid;
+  gap: 14px;
+  min-width: 0;
+}
+
+.dru-application-switcher {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.dru-application-switch .project-kicker {
+  margin-bottom: 0;
+}
+
+.dru-application-switch {
+  position: relative;
+  overflow: hidden;
+  border-color: rgba(22, 78, 86, 0.42);
+  background:
+    linear-gradient(135deg, rgba(36, 106, 115, 0.1), rgba(255, 231, 158, 0.18)),
+    var(--surface);
+  box-shadow: 0 12px 28px rgba(36, 106, 115, 0.08);
+}
+
+.dru-application-switch::before {
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 4px;
+  background: linear-gradient(180deg, var(--accent), rgba(194, 125, 67, 0.82));
+  content: "";
+}
+
+.dru-application-switch:hover,
+.dru-application-switch:focus-visible,
+.dru-application-switch.is-active {
+  border-color: var(--accent-strong);
+  background:
+    linear-gradient(135deg, rgba(36, 106, 115, 0.16), rgba(255, 231, 158, 0.28)),
+    var(--surface);
+  box-shadow: 0 16px 34px rgba(36, 106, 115, 0.13);
+}
+
+.dru-application-switch h4 {
+  color: var(--accent-strong);
+}
+
+.dru-application-section {
+  padding: 16px;
+  border: 1px solid rgba(36, 106, 115, 0.16);
+  border-radius: var(--radius);
+  background: rgba(255, 255, 255, 0.72);
+}
+
+.dru-application-section > h4,
+.dru-application-section > p {
+  margin-bottom: 0;
+}
+
+.dru-application-section > p {
+  color: var(--muted);
+  line-height: 1.55;
+}
+
 .project-final-header {
   display: grid;
   gap: 8px;
@@ -2585,6 +2713,38 @@ h4 {
   font-size: 1.02rem;
 }
 
+.qml-project-button[data-project="data-reuploading"] {
+  position: relative;
+  overflow: hidden;
+  border-color: rgba(22, 78, 86, 0.55);
+  background:
+    linear-gradient(135deg, rgba(36, 106, 115, 0.16), rgba(255, 231, 158, 0.28)),
+    var(--surface);
+  box-shadow: 0 16px 34px rgba(36, 106, 115, 0.14);
+  color: var(--accent-strong);
+}
+
+.qml-project-button[data-project="data-reuploading"]::before {
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 5px;
+  background: linear-gradient(180deg, var(--accent), var(--warm));
+  content: "";
+}
+
+.qml-project-button[data-project="data-reuploading"]:hover,
+.qml-project-button[data-project="data-reuploading"]:focus-visible {
+  border-color: var(--accent-strong);
+  background:
+    linear-gradient(135deg, rgba(36, 106, 115, 0.22), rgba(255, 231, 158, 0.36)),
+    var(--surface);
+  box-shadow: 0 18px 38px rgba(36, 106, 115, 0.18);
+}
+
+.qml-project-button[data-project="data-reuploading"] strong {
+  color: var(--accent-strong);
+}
+
 .project-back,
 .project-header-back {
   width: fit-content;
@@ -2633,6 +2793,7 @@ h4 {
 
   .workspace-grid,
   .qml-project-buttons,
+  .dru-application-switcher,
   .qml-flow-map,
   .project-analogy-grid,
   .project-detail-equations {
